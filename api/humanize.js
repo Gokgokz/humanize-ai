@@ -26,26 +26,20 @@ export default async function handler(req, res) {
 
     const systemPrompt = prompts[tone] || prompts.formal;
 
-    // เรายังคงใช้ชื่อตัวแปร GEMINI_API_KEY ใน Vercel ได้เลย จะได้ไม่ต้องไปลบสร้างใหม่
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(200).json({
-        success: false,
-        error: "❌ หลังบ้านตรวจพบ: ไม่พบ API Key ใน Environment Variables"
-      });
-    }
+    // 💡 ลบตัวเช็ค Environment Variables เก่าออกแล้ว ยิงตรงหาคีย์นี้ทันที!
+    // ⚠️ อย่าลืมเปลี่ยนคำว่า ใส่_API_KEY_ตรงนี้ ให้เป็นคีย์ OpenRouter จริงของคุณ (sk-or-v1-...)
+    const MY_OPENROUTER_KEY = "ใส่_API_KEY_ตรงนี้"; 
 
     // ติดต่อเซิร์ฟเวอร์ OpenRouter
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
+        "Authorization": `Bearer ${MY_OPENROUTER_KEY}`,
         "Content-Type": "application/json",
-        // OpenRouter แนะนำให้ใส่ URL เว็บเรา เพื่อกันคนอื่นแอบอ้าง
-        "HTTP-Referer": "https://humanize-ai.vercel.app", 
+        "HTTP-Referer": "https://humanize-ai-rho.vercel.app", 
         "X-Title": "Humanize AI Thai"
       },
       body: JSON.stringify({
-        // สามารถเปลี่ยนชื่อโมเดลได้ตามที่มีในเว็บ OpenRouter
         model: "google/gemini-2.0-flash-001", 
         messages: [
           { role: "system", content: systemPrompt },
@@ -69,14 +63,12 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-
-    // แกะข้อความตามโครงสร้างของ OpenRouter
     const output = data.choices?.[0]?.message?.content;
     
     if (!output) {
       return res.status(200).json({
         success: false,
-        error: `❌ ไม่สามารถแกะข้อความจาก OpenRouter ได้ โครงสร้างที่ได้รับ: ${JSON.stringify(data)}`
+        error: `❌ ไม่สามารถแกะข้อความได้ โครงสร้างที่ได้รับ: ${JSON.stringify(data)}`
       });
     }
 
