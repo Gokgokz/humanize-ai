@@ -19,49 +19,47 @@ export default async function handler(req, res) {
 
     const systemPrompt = prompts[tone] || prompts.formal;
 
+    // เช็คว่าคุณใส่ Token ของ z.ai ใน Vercel หรือยัง (เราใช้ชื่อแปรเดิมเพื่อจะได้ไม่ต้องลบใน Vercel)
     if (!process.env.GEMINI_API_KEY) {
       return res.status(200).json({
         success: true,
-        output: "❌ ระบบ Vercel หา GEMINI_API_KEY ไม่เจอ!"
+        output: "❌ ไม่พบ API Key หรือ Token ในระบบ Environment Variables ของ Vercel"
       });
     }
 
-    // เปลี่ยนชื่อโมเดลเป็น gemini-2.0-flash ตามเวอร์ชันที่เปิดใช้งานได้
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `SYSTEM:\n${systemPrompt}\n\nUSER:\n${text}`
-                }
-              ]
-            }
-          ]
-        })
-      }
-    );
+    // เรียกยิงไปที่เซิร์ฟเวอร์ของ z.ai (ใช้ OpenAI-compatible format ตามมาตรฐานของ z.ai)
+    const response = await fetch('https://api.z.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}` // เอาคีย์ของ z.ai ที่คุณมีไปใส่ในช่องเดิมของ Vercel ได้เลยครับ
+      },
+      body: JSON.stringify({
+        model: 'gemini-2.0-flash', // หรือใส่ชื่อโมเดลที่ z.ai กำหนดให้ใช้ในแพ็กเกจของคุณ
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: text }
+        ],
+        temperature: 0.7
+      })
+    });
 
     const data = await response.json();
 
+    // ดักจับ Error เผื่อทาง z.ai ฟ้องปัญหา
     if (data.error) {
-       return res.status(200).json({
+      return res.status(200).json({
         success: true,
-        output: `❌ Gemini API ฟ้องว่า: ${data.error.message}`
+        output: `❌ z.ai API ฟ้องว่า: ${data.error.message || data.error}`
       });
     }
 
-    const output = data.candidates?.[0]?.content?.parts?.[0]?.text || 'ไม่สามารถอ่านข้อความจาก AI ได้';
+    // แกะข้อความที่เกลาเสร็จแล้วตามโครงสร้าง OpenAI/z.ai format
+    const output = data.choices?.[0]?.message?.content || 'ไม่สามารถดึงข้อมูลจาก z.ai ได้';
 
     res.status(200).json({
       success: true,
-      output
+      output: output.trim()
     });
 
   } catch (err) {
