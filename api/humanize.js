@@ -19,23 +19,21 @@ export default async function handler(req, res) {
 
     const systemPrompt = prompts[tone] || prompts.formal;
 
-    // เช็คว่าคุณใส่ Token ของ z.ai ใน Vercel หรือยัง (เราใช้ชื่อแปรเดิมเพื่อจะได้ไม่ต้องลบใน Vercel)
     if (!process.env.GEMINI_API_KEY) {
       return res.status(200).json({
         success: true,
-        output: "❌ ไม่พบ API Key หรือ Token ในระบบ Environment Variables ของ Vercel"
+        output: "❌ หา Token ของ z.ai ไม่เจอในระบบ Environment Variables"
       });
     }
 
-    // เรียกยิงไปที่เซิร์ฟเวอร์ของ z.ai (ใช้ OpenAI-compatible format ตามมาตรฐานของ z.ai)
     const response = await fetch('https://api.z.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}` // เอาคีย์ของ z.ai ที่คุณมีไปใส่ในช่องเดิมของ Vercel ได้เลยครับ
+        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gemini-2.0-flash', // หรือใส่ชื่อโมเดลที่ z.ai กำหนดให้ใช้ในแพ็กเกจของคุณ
+        model: 'gemini-2.0-flash', 
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: text }
@@ -44,18 +42,40 @@ export default async function handler(req, res) {
       })
     });
 
-    const data = await response.json();
-
-    // ดักจับ Error เผื่อทาง z.ai ฟ้องปัญหา
-    if (data.error) {
+    // ถ้า HTTP Status พัง (เช่น 401 คีย์ผิด หรือ 404 หาลิงก์ไม่เจอ)
+    if (!response.ok) {
+      const errText = await response.text();
       return res.status(200).json({
         success: true,
-        output: `❌ z.ai API ฟ้องว่า: ${data.error.message || data.error}`
+        output: `❌ เซิร์ฟเวอร์ z.ai ตอบกลับด้วยข้อผิดพลาด HTTP ${response.status}: ${errText}`
       });
     }
 
-    // แกะข้อความที่เกลาเสร็จแล้วตามโครงสร้าง OpenAI/z.ai format
-    const output = data.choices?.[0]?.message?.content || 'ไม่สามารถดึงข้อมูลจาก z.ai ได้';
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(200).json({
+        success: true,
+        output: `❌ z.ai ฟ้อง Error: ${JSON.stringify(data.error)}`
+      });
+    }
+
+    // --- ตรวจสอบรูปแบบข้อมูลและแกะข้อความแบบละเอียด ป้องกันการค้าง ---
+    let output = '';
+    
+    if (data.choices?.[0]?.message?.content) {
+      // รูปแบบมาตรฐาน OpenAI
+      output = data.choices[0].message.content;
+    } else if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      // รูปแบบมาตรฐาน Gemini Direct
+      output = data.candidates[0].content.parts[0].text;
+    } else if (data.output) {
+      // รูปแบบเฉพาะของ z.ai แบบย่อ
+      output = data.output;
+    } else {
+      // หากส่งโครงสร้างอื่นแปลกๆ มา ให้ส่งดิบออกไปดูเลย จะได้ไม่ค้าง
+      output = `❌ โครงสร้างข้อมูลไม่ถูกต้อง ได้รับ: ${JSON.stringify(data)}`;
+    }
 
     res.status(200).json({
       success: true,
@@ -64,9 +84,9 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.log(err);
-    res.status(500).json({
-      success: false,
-      error: 'Server Error'
+    res.status(200).json({
+      success: true,
+      output: `❌ ระบบภายในพัง (Catch Error): ${err.message}`
     });
   }
 }
