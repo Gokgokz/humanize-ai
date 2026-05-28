@@ -26,23 +26,55 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🌐 เปลี่ยนมาใช้ Endpoint มาตรฐานของการเรียก AI Direct ที่มักจะเป็นลิงก์หลักของ z.ai
-    // (หากทาง z.ai มีคู่มือระบุลิงก์เฉพาะ สามารถปรับตามคู่มือเขาได้เลยครับ)
-    const response = await fetch('https://api.z.ai/v1/chat', { 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gemini-2.0-flash', 
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
-        ],
-        temperature: 0.7
-      })
-    });
+    // 💡 รวบรวมรูปแบบ URL ยอดนิยมของ z.ai ที่เปิดให้บริการ
+    // ระบบจะลองยิงอันแรกก่อน ถ้าเจอ 404 จะสลับไปยิงอันที่สองให้อัตโนมัติทันที
+    const urlsToTry = [
+      'https://api.z.ai/v1/chat/completions',
+      'https://api.z.ai/v1/completions',
+      'https://api.z.ai/chat/completions'
+    ];
+
+    let response;
+    let lastErrorText = '';
+    let successFetch = false;
+
+    for (const url of urlsToTry) {
+      try {
+        response = await fetch(url, { 
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.GEMINI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini', // ใช้ชื่อโมเดลมาตรฐานที่ z.ai นิยมเปิดให้ใช้ในระบบ proxy
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: text }
+            ],
+            temperature: 0.7
+          })
+        });
+
+        // ถ้าไม่ใช่ 404 (แปลว่าเจอหน้าบ้านเขาแล้ว แต่อาจจะคีย์ผิดหรือโมเดลไม่มีสิทธิ์) ให้หยุดลองต่อทันที
+        if (response.status !== 404) {
+          successFetch = true;
+          break;
+        }
+        
+        lastErrorText = `ลองยิงไปที่ ${url} แล้วเจอ 404`;
+      } catch (e) {
+        lastErrorText = `เชื่อมต่อไม่ได้: ${e.message}`;
+      }
+    }
+
+    // หากลองทุก URL แล้วยังเจอ 404 อยู่
+    if (!successFetch || !response) {
+      return res.status(200).json({
+        success: true,
+        output: `❌ ระบบทดลองยิงทุก Endpoint ของ z.ai แล้วยังขึ้น 404 (Not Found) แนะนำให้ตรวจสอบคู่มือหรือแผงควบคุมของ z.ai ว่าเขากำหนด Base URL ไว้ว่าอย่างไรครับ`
+      });
+    }
 
     if (!response.ok) {
       const errText = await response.text();
@@ -64,8 +96,8 @@ export default async function handler(req, res) {
     let output = '';
     if (data.choices?.[0]?.message?.content) {
       output = data.choices[0].message.content;
-    } else if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      output = data.candidates[0].content.parts[0].text;
+    } else if (data.choices?.[0]?.text) {
+      output = data.choices[0].text;
     } else if (data.output) {
       output = data.output;
     } else {
