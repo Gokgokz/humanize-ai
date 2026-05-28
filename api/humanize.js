@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
     // เปลี่ยนชื่อโมเดลเป็น gemini-2.0-flash ตามเวอร์ชันที่เปิดใช้งานได้
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
