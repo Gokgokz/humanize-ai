@@ -1,27 +1,756 @@
-<script type="module">
-  import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.16.0';
-
-  // สร้างฟังก์ชันจำลองสำหรับวิเคราะห์ข้อความ
-  async function runMLDetection(text) {
-    try {
-      document.getElementById('processingStatus').textContent = 'กำลังโหลดโมเดล AI... (ครั้งแรกจะนานนิดนึง)';
-      
-      // โหลดโมเดลจำแนกข้อความ (ตัวอย่างนี้เป็นโมเดลภาษาอังกฤษขนาดเล็ก)
-      // ในการใช้งานจริง คุณต้องหา/เทรนโมเดลจับผิด AI ภาษาไทยแล้วแปลงเป็นฟอร์แมต ONNX
-      const classifier = await pipeline('text-classification', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
-      
-      document.getElementById('processingStatus').textContent = 'กำลังวิเคราะห์ด้วย Neural Network...';
-      const output = await classifier(text);
-      
-      console.log("ML Output:", output);
-      // นำผลลัพธ์ไปประยุกต์ใช้กับ UI ของคุณ
-      return output;
-
-    } catch (error) {
-      console.error("ML Error:", error);
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HumanizeAI - แปลงข้อความ AI ให้เป็นธรรมชาติเหมือนมนุษย์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            body: ['IBM Plex Sans Thai', 'sans-serif'],
+          },
+          colors: {
+            bg: { primary: '#0a0f1a', secondary: '#111827', tertiary: '#1a2332' },
+            accent: { emerald: '#10b981', teal: '#14b8a6', amber: '#f59e0b', coral: '#f97316' },
+            surface: { dark: '#151c2c', card: '#1e293b', border: '#2d3a4f' }
+          }
+        }
+      }
     }
-  }
+  </script>
+  <style>
+    :root {
+      --bg-primary: #0a0f1a;
+      --accent-emerald: #10b981;
+      --accent-teal: #14b8a6;
+      --accent-amber: #f59e0b;
+    }
+    * { scrollbar-width: thin; scrollbar-color: #2d3a4f transparent; }
+    body { font-family: 'IBM Plex Sans Thai', sans-serif; background: var(--bg-primary); overflow-x: hidden; }
+    .font-display { font-family: 'Space Grotesk', sans-serif; }
+    
+    .hero-gradient {
+      background: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 50%, rgba(20, 184, 166, 0.1), transparent),
+        radial-gradient(ellipse 50% 30% at 20% 80%, rgba(245, 158, 11, 0.08), transparent);
+    }
+    
+    .particle {
+      position: absolute; width: 4px; height: 4px;
+      background: rgba(16, 185, 129, 0.6); border-radius: 50%;
+      animation: float 15s infinite ease-in-out;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+      25% { transform: translateY(-100px) translateX(50px); opacity: 0.8; }
+      50% { transform: translateY(-50px) translateX(-30px); opacity: 0.5; }
+      75% { transform: translateY(-150px) translateX(20px); opacity: 0.7; }
+    }
+    
+    .grid-pattern {
+      background-image: linear-gradient(rgba(45, 58, 79, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(45, 58, 79, 0.3) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 70% 50% at 50% 50%, black, transparent);
+    }
+    
+    .progress-fill { transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    .custom-textarea {
+      background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); transition: all 0.3s ease;
+    }
+    .custom-textarea:focus {
+      background: rgba(30, 41, 59, 0.8); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #14b8a6); transition: all 0.3s ease; position: relative; overflow: hidden;
+    }
+    .btn-primary::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s;
+    }
+    .btn-primary:hover::before { left: 100%; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3); }
+    
+    .tone-option { transition: all 0.3s ease; }
+    .tone-option:hover { transform: translateY(-2px); }
+    .tone-option.selected {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(20, 184, 166, 0.1));
+      border-color: var(--accent-emerald);
+    }
+    
+    .pricing-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .pricing-card:hover { transform: translateY(-8px); }
+    
+    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+      .particle { display: none; }
+    }
+    
+    .mobile-menu { transform: translateX(100%); transition: transform 0.3s ease; }
+    .mobile-menu.open { transform: translateX(0); }
+    
+    .history-item { transition: all 0.3s ease; }
+    .history-item:hover { background: rgba(16, 185, 129, 0.1); }
+    
+    .analysis-item { animation: slideIn 0.3s ease forwards; opacity: 0; }
+    @keyframes slideIn { to { opacity: 1; transform: translateX(0); } from { opacity: 0; transform: translateX(-10px); } }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen">
+  <div class="fixed inset-0 hero-gradient pointer-events-none"></div>
+  <div class="fixed inset-0 grid-pattern pointer-events-none"></div>
+  <div id="particles" class="fixed inset-0 pointer-events-none overflow-hidden"></div>
 
-  // ผูกกับปุ่มของคุณ
-  // runMLDetection("ข้อความที่ต้องการตรวจสอบ");
-</script>
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-bg-primary/80 backdrop-blur-xl border-b border-surface-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-emerald to-accent-teal flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+          </div>
+          <span class="font-display font-bold text-xl">HumanizeAI</span>
+        </div>
+        <div class="hidden md:flex items-center gap-8">
+          <a href="#tool" class="text-gray-400 hover:text-accent-emerald transition-colors">เครื่องมือ</a>
+          <a href="#pricing" class="text-gray-400 hover:text-accent-emerald transition-colors">ราคา</a>
+          <a href="#history" class="text-gray-400 hover:text-accent-emerald transition-colors">ประวัติ</a>
+          <div class="flex items-center gap-3">
+            <button id="langToggle" class="px-3 py-1.5 rounded-lg border border-surface-border text-sm hover:border-accent-emerald transition-colors">EN / TH</button>
+            <button class="btn-primary px-5 py-2 rounded-xl font-medium">เริ่มใช้งาน</button>
+          </div>
+        </div>
+        <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg hover:bg-surface-card transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="mobileMenu" class="mobile-menu fixed inset-y-0 right-0 w-72 bg-bg-secondary border-l border-surface-border z-50 p-6">
+    <button id="closeMobileMenu" class="absolute top-4 right-4 p-2 rounded-lg hover:bg-surface-card">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div class="mt-12 flex flex-col gap-4">
+      <a href="#tool" class="py-3 px-4 rounded-xl hover:bg-surface-card transition-colors">เครื่องมือ</a>
+      <a href="#pricing" class="py-3 px-4 rounded-xl hover:bg-surface-card transition-colors">ราคา</a>
+      <a href="#history" class="py-3 px-4 rounded-xl hover:bg-surface-card transition-colors">ประวัติ</a>
+      <button class="btn-primary px-5 py-3 rounded-xl font-medium mt-4">เริ่มใช้งาน</button>
+    </div>
+  </div>
+
+  <section class="relative min-h-screen flex items-center pt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div class="text-center mb-12 reveal">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-card border border-surface-border mb-6">
+          <span class="w-2 h-2 rounded-full bg-accent-emerald animate-pulse"></span>
+          <span class="text-sm text-gray-400">มีผู้ใช้งานมากกว่า 50,000 คน</span>
+        </div>
+        <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          แปลงข้อความ AI ให้เป็นธรรมชาติ
+          <br>
+          <span class="bg-gradient-to-r from-accent-emerald via-accent-teal to-accent-amber bg-clip-text text-transparent">เหมือนมนุษย์เขียนเอง</span>
+        </h1>
+        <p class="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-8">
+          ปรับแก้ภาษาที่เขียนจาก AI ให้ไหลลื่น ผ่านตัวตรวจจับ AI ทุกระบบ รองรับหลายภาษา หลายโทนเสียง
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="#tool" class="btn-primary px-8 py-4 rounded-xl font-semibold text-lg">ลองใช้ฟรีทันที</a>
+          <button class="px-8 py-4 rounded-xl font-semibold text-lg border border-surface-border hover:border-accent-emerald transition-colors">ดูวิธีใช้งาน</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16 reveal" style="transition-delay: 0.2s;">
+        <div class="bg-surface-card/50 backdrop-blur rounded-2xl p-6 text-center border border-surface-border">
+          <div class="font-display text-3xl font-bold text-accent-emerald mb-1">99.2%</div>
+          <div class="text-sm text-gray-400">อัตราผ่าน AI Detector</div>
+        </div>
+        <div class="bg-surface-card/50 backdrop-blur rounded-2xl p-6 text-center border border-surface-border">
+          <div class="font-display text-3xl font-bold text-accent-teal mb-1">50K+</div>
+          <div class="text-sm text-gray-400">ผู้ใช้งานทั่วโลก</div>
+        </div>
+        <div class="bg-surface-card/50 backdrop-blur rounded-2xl p-6 text-center border border-surface-border">
+          <div class="font-display text-3xl font-bold text-accent-amber mb-1">10M+</div>
+          <div class="text-sm text-gray-400">คำที่ประมวลผล</div>
+        </div>
+        <div class="bg-surface-card/50 backdrop-blur rounded-2xl p-6 text-center border border-surface-border">
+          <div class="font-display text-3xl font-bold text-accent-coral mb-1">15+</div>
+          <div class="text-sm text-gray-400">ภาษาที่รองรับ</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tool" class="relative py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-surface-card/80 backdrop-blur rounded-2xl p-4 mb-8 border border-surface-border reveal">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-emerald/20 to-accent-teal/20 flex items-center justify-center">
+              <svg class="w-6 h-6 text-accent-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm text-gray-400">โควตาคำคงเหลือ (วันนี้)</div>
+              <div class="font-display font-bold text-xl">
+                <span id="wordQuota" class="text-accent-emerald">500</span> / 500 คำ
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex-1 sm:w-48 h-2 bg-surface-border rounded-full overflow-hidden">
+              <div id="quotaBar" class="h-full bg-gradient-to-r from-accent-emerald to-accent-teal progress-fill" style="width: 100%"></div>
+            </div>
+            <button class="px-4 py-2 rounded-xl bg-accent-amber/20 text-accent-amber text-sm font-medium hover:bg-accent-amber/30 transition-colors">อัปเกรด</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-6 reveal" style="transition-delay: 0.1s;">
+        <label class="block text-sm font-medium text-gray-400 mb-3">เลือกโทนเสียง</label>
+        <div class="flex flex-wrap gap-3" id="toneSelector">
+          <button class="tone-option selected px-5 py-2.5 rounded-xl border border-surface-border bg-surface-card/50 text-sm font-medium" data-tone="formal">
+            <span class="block">ทางการ</span><span class="text-xs text-gray-500">Formal</span>
+          </button>
+          <button class="tone-option px-5 py-2.5 rounded-xl border border-surface-border bg-surface-card/50 text-sm font-medium" data-tone="casual">
+            <span class="block">เป็นกันเอง</span><span class="text-xs text-gray-500">Casual</span>
+          </button>
+          <button class="tone-option px-5 py-2.5 rounded-xl border border-surface-border bg-surface-card/50 text-sm font-medium" data-tone="business">
+            <span class="block">ธุรกิจ</span><span class="text-xs text-gray-500">Business</span>
+          </button>
+          <button class="tone-option px-5 py-2.5 rounded-xl border border-surface-border bg-surface-card/50 text-sm font-medium" data-tone="storytelling">
+            <span class="block">เล่าเรื่อง</span><span class="text-xs text-gray-500">Storytelling</span>
+          </button>
+          <button class="tone-option px-5 py-2.5 rounded-xl border border-surface-border bg-surface-card/50 text-sm font-medium" data-tone="academic">
+            <span class="block">วิชาการ</span><span class="text-xs text-gray-500">Academic</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-6 reveal" style="transition-delay: 0.15s;">
+        <label class="block text-sm font-medium text-gray-400 mb-3">ภาษา</label>
+        <div class="flex flex-wrap gap-3" id="langSelector">
+          <button class="tone-option selected px-4 py-2 rounded-xl border border-surface-border bg-surface-card/50 text-sm" data-lang="th">ไทย</button>
+          <button class="tone-option px-4 py-2 rounded-xl border border-surface-border bg-surface-card/50 text-sm" data-lang="en">English</button>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6 reveal" style="transition-delay: 0.2s;">
+        <div class="bg-surface-card/80 backdrop-blur rounded-2xl border border-surface-border overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-3 border-b border-surface-border">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-accent-coral" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              <span class="font-medium">ข้อความต้นฉบับ (AI)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="clearInput" class="p-2 rounded-lg hover:bg-surface-border transition-colors" title="ล้าง">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+              <label class="p-2 rounded-lg hover:bg-surface-border transition-colors cursor-pointer" title="อัปโหลดไฟล์">
+                <input type="file" id="fileUpload" class="hidden" accept=".txt,.doc,.docx,.pdf">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              </label>
+            </div>
+          </div>
+          
+          <div class="px-5 py-4 bg-surface-dark/50 border-b border-surface-border">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium">AI Detection Score</span>
+              <div class="flex items-center gap-2">
+                <span id="aiScoreBeforeLabel" class="font-display font-bold text-lg">--</span>
+              </div>
+            </div>
+            <div class="flex h-3 rounded-full overflow-hidden bg-surface-border">
+              <div id="aiBarBefore" class="h-full bg-gradient-to-r from-red-500 to-red-400 progress-fill" style="width: 0%"></div>
+              <div id="humanBarBefore" class="h-full bg-gradient-to-r from-accent-emerald to-accent-teal progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <textarea 
+            id="inputText" 
+            class="custom-textarea w-full h-64 lg:h-72 p-5 text-gray-100 placeholder-gray-500 resize-none border-0 focus:outline-none"
+            placeholder="วางข้อความที่สร้างจาก AI ตรงนี้..."
+          ></textarea>
+          
+          <div class="px-5 py-3 border-t border-surface-border flex items-center justify-between">
+            <span class="text-sm text-gray-400"><span id="inputWordCount">0</span> คำ</span>
+          </div>
+        </div>
+
+        <div class="bg-surface-card/80 backdrop-blur rounded-2xl border border-surface-border overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-3 border-b border-surface-border">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-accent-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              <span class="font-medium">ข้อความที่ปรับแล้ว (Human)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="copyOutput" class="p-2 rounded-lg hover:bg-surface-border transition-colors" title="คัดลอก">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </button>
+              <button id="downloadOutput" class="p-2 rounded-lg hover:bg-surface-border transition-colors" title="ดาวน์โหลด">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              </button>
+            </div>
+          </div>
+          
+          <div class="px-5 py-4 bg-surface-dark/50 border-b border-surface-border">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium">AI Detection Score</span>
+              <div class="flex items-center gap-2">
+                <span id="aiScoreAfterLabel" class="font-display font-bold text-lg">--</span>
+              </div>
+            </div>
+            <div class="flex h-3 rounded-full overflow-hidden bg-surface-border">
+              <div id="aiBarAfter" class="h-full bg-gradient-to-r from-red-500 to-red-400 progress-fill" style="width: 0%"></div>
+              <div id="humanBarAfter" class="h-full bg-gradient-to-r from-accent-emerald to-accent-teal progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div id="outputText" class="w-full h-64 lg:h-72 p-5 text-gray-100 overflow-y-auto">
+            <span class="text-gray-500 italic">ผลลัพธ์จะแสดงที่นี่หลังจากกดประมวลผล...</span>
+          </div>
+          
+          <div class="px-5 py-3 border-t border-surface-border flex items-center justify-between">
+            <span class="text-sm text-gray-400"><span id="outputWordCount">0</span> คำ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-4 mt-8 justify-center reveal" style="transition-delay: 0.3s;">
+        <button id="processBtn" class="btn-primary px-10 py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span id="processBtnText">แปลงเป็นมนุษย์</span>
+        </button>
+        <button id="detectOnlyBtn" class="px-8 py-4 rounded-xl font-semibold border border-surface-border hover:border-accent-emerald transition-colors flex items-center justify-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          ตรวจจับ AI เท่านั้น
+        </button>
+      </div>
+
+      <div id="processingIndicator" class="hidden fixed inset-0 bg-bg-primary/80 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-surface-card rounded-2xl p-8 border border-surface-border text-center">
+          <div class="w-16 h-16 mx-auto mb-4 relative">
+            <div class="absolute inset-0 border-4 border-surface-border rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-accent-emerald rounded-full animate-spin border-t-transparent"></div>
+          </div>
+          <div class="font-medium text-lg mb-2">กำลังประมวลผล...</div>
+          <div class="text-sm text-gray-400" id="processingStatus">วิเคราะห์โครงสร้างประโยค</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="history" class="relative py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12 reveal">
+        <h2 class="font-display text-3xl sm:text-4xl font-bold mb-4">ประวัติการใช้งาน</h2>
+        <p class="text-gray-400">เข้าถึงเอกสารที่เคยประมวลผลได้ตลอดเวลา</p>
+      </div>
+      <div class="bg-surface-card/80 backdrop-blur rounded-2xl border border-surface-border overflow-hidden reveal" style="transition-delay: 0.1s;">
+        <div id="historyList" class="divide-y divide-surface-border max-h-96 overflow-y-auto"></div>
+        <div id="emptyHistory" class="p-12 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-dark/50 flex items-center justify-center">
+            <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="text-gray-400">ยังไม่มีประวัติการใช้งาน</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="relative py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12 reveal">
+        <h2 class="font-display text-3xl sm:text-4xl font-bold mb-4">แผนบอกรับสมาชิก</h2>
+        <p class="text-gray-400">เลือกแผนที่เหมาะกับความต้องการของคุณ</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6 reveal" style="transition-delay: 0.1s;">
+        <div class="pricing-card bg-surface-card/80 backdrop-blur rounded-2xl border border-surface-border p-6">
+          <div class="text-accent-teal font-medium mb-2">ฟรี</div>
+          <div class="font-display text-4xl font-bold mb-1">0</div>
+          <div class="text-gray-400 text-sm mb-6">บาท/เดือน</div>
+          <ul class="space-y-3 mb-8 text-sm">
+            <li class="flex items-center gap-3"><svg class="w-5 h-5 text-accent-emerald flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>500 คำ/วัน</span></li>
+            <li class="flex items-center gap-3"><svg class="w-5 h-5 text-accent-emerald flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>โทนเสียงพื้นฐาน</span></li>
+          </ul>
+          <button class="w-full py-3 rounded-xl border border-surface-border hover:border-accent-emerald transition-colors font-medium">แผนปัจจุบัน</button>
+        </div>
+        <div class="pricing-card bg-gradient-to-b from-accent-emerald/10 to-transparent backdrop-blur rounded-2xl border-2 border-accent-emerald p-6 relative">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-accent-emerald rounded-full text-xs font-medium text-bg-primary">ยอดนิยม</div>
+          <div class="text-accent-emerald font-medium mb-2">โปร</div>
+          <div class="font-display text-4xl font-bold mb-1">299</div>
+          <div class="text-gray-400 text-sm mb-6">บาท/เดือน</div>
+          <ul class="space-y-3 mb-8 text-sm">
+             <li class="flex items-center gap-3"><svg class="w-5 h-5 text-accent-emerald flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>50,000 คำ/เดือน</span></li>
+             <li class="flex items-center gap-3"><svg class="w-5 h-5 text-accent-emerald flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>โทนเสียงครบทุกแบบ</span></li>
+          </ul>
+          <button class="btn-primary w-full py-3 rounded-xl font-medium">เริ่มทดลอง 7 วันฟรี</button>
+        </div>
+         <div class="pricing-card bg-surface-card/80 backdrop-blur rounded-2xl border border-surface-border p-6">
+          <div class="text-accent-amber font-medium mb-2">องค์กร</div>
+          <div class="font-display text-4xl font-bold mb-1">999</div>
+          <div class="text-gray-400 text-sm mb-6">บาท/เดือน</div>
+          <ul class="space-y-3 mb-8 text-sm">
+            <li class="flex items-center gap-3"><svg class="w-5 h-5 text-accent-emerald flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>ไม่จำกัดคำ</span></li>
+            <li class="flex items-center gap-3"><svg class="w-5 h-5 text-accent-emerald flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>API Access</span></li>
+          </ul>
+          <button class="w-full py-3 rounded-xl border border-accent-amber text-accent-amber hover:bg-accent-amber/10 transition-colors font-medium">ติดต่อเรา</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="fixed bottom-6 right-6 bg-surface-card border border-surface-border rounded-xl p-4 shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+    <div class="flex items-center gap-3">
+      <div id="toastIcon" class="w-8 h-8 rounded-lg bg-accent-emerald/20 flex items-center justify-center">
+        <svg class="w-4 h-4 text-accent-emerald" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div>
+        <div id="toastTitle" class="font-medium text-sm">สำเร็จ</div>
+        <div id="toastMessage" class="text-xs text-gray-400">ดำเนินการเรียบร้อย</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============== STATE VARIABLES ==============
+    let wordQuota = Infinity;
+    let selectedTone = 'formal';
+    let selectedLang = 'th';
+    let historyData = [];
+
+    // ============== AI PATTERNS (IMPROVED DETECTION) ==============
+    const aiPatternsThai = [
+      { pattern: /ได้ดำเนินการ/g, weight: 8 }, { pattern: /เป็นสิ่งที่/g, weight: 7 },
+      { pattern: /มีความ(สำคัญ|จำเป็น|เหมาะสม)/g, weight: 6 }, { pattern: /ในปัจจุบัน(นี้)?/g, weight: 5 },
+      { pattern: /อย่างมี(ประสิทธิภาพ|ความหมาย)/g, weight: 7 }, { pattern: /เนื่องจากว่า/g, weight: 6 },
+      { pattern: /เพื่อให้เกิด/g, weight: 6 }, { pattern: /โดยสามารถ/g, weight: 5 },
+      { pattern: /ซึ่ง(เป็น|มี|จะ)/g, weight: 4 }, { pattern: /อีกทั้ง/g, weight: 5 },
+      { pattern: /ทั้งนี้/g, weight: 5 }, { pattern: /ในส่วนของ/g, weight: 6 },
+      { pattern: /ด้าน(การ|ความ)/g, weight: 4 }, { pattern: /มีการพัฒนา/g, weight: 5 },
+      { pattern: /เข้ามามีบทบาท/g, weight: 6 }, { pattern: /มีส่วนร่วม/g, weight: 5 },
+      { pattern: /อย่าง(ต่อเนื่อง|กว้างขวาง|รวดเร็ว)/g, weight: 5 },
+      { pattern: /การ(พัฒนา|ดำเนินการ|ปรับปรุง)/g, weight: 4 },
+      { pattern: /ความ(สำคัญ|จำเป็น|เหมาะสม)/g, weight: 4 },
+      { pattern: /ไม่ว่าจะเป็น/g, weight: 6 }, { pattern: /ทั้งในด้าน/g, weight: 5 },
+      { pattern: /มีความสัมพันธ์กับ/g, weight: 5 }, { pattern: /เป็นไปได้ว่า/g, weight: 4 },
+      { pattern: /ในระดับที่/g, weight: 5 }, { pattern: /สร้างความเปลี่ยนแปลง/g, weight: 6 },
+      { pattern: /อย่างมีนัยสำคัญ/g, weight: 6 }, { pattern: /ทุกมิติ/g, weight: 5 },
+      { pattern: /วิถีชีวิต/g, weight: 4 }, { pattern: /ดำเนินไปอย่าง/g, weight: 5 },
+      { pattern: /เป็นที่ทราบกันดีว่า/g, weight: 6 }, { pattern: /สิ่งสำคัญคือ/g, weight: 5 },
+      { pattern: /จึงเป็นสิ่งจำเป็นที่/g, weight: 7 }, { pattern: /เพื่อให้เข้าใจ/g, weight: 5 },
+      { pattern: /จากการ(ศึกษา|วิเคราะห์|พิจารณา)/g, weight: 5 },
+      { pattern: /โดยภาพรวมแล้ว/g, weight: 5 }, { pattern: /นอกจากนี้ยัง/g, weight: 5 },
+      { pattern: /จะเห็นได้ว่า/g, weight: 5 }, { pattern: /กล่าวได้ว่า/g, weight: 4 },
+      { pattern: /ในทำนองเดียวกัน/g, weight: 5 }, { pattern: /มีผลกระทบต่อ/g, weight: 5 },
+      { pattern: /สอดคล้องกับ/g, weight: 4 }, { pattern: /มีแนวโน้มที่จะ/g, weight: 5 },
+      { pattern: /ปัจจัย(สำคัญ|หลัก)คือ/g, weight: 5 }, { pattern: /ขึ้นอยู่กับ/g, weight: 4 },
+      { pattern: /เป็นเรื่องที่/g, weight: 5 }, { pattern: /มีความหลากหลาย/g, weight: 5 },
+      { pattern: /ส่งผลให้/g, weight: 4 }, { pattern: /ด้วยเหตุนี้/g, weight: 5 },
+      { pattern: /อย่างไรก็ตาม/g, weight: 4 }, { pattern: /in (ขณะ|ระหว่าง)ที่/g, weight: 4 },
+      { pattern: /แม้ว่าจะ/g, weight: 4 }, { pattern: /ในบริบทของ/g, weight: 5 },
+      { pattern: /เกี่ยวข้องกับ/g, weight: 4 }
+    ];
+
+    const aiPatternsEng = [
+      { pattern: /in order to/gi, weight: 6 }, { pattern: /due to the fact that/gi, weight: 7 },
+      { pattern: /it is important to note that/gi, weight: 8 }, { pattern: /has the ability to/gi, weight: 6 },
+      { pattern: /in the event that/gi, weight: 6 }, { pattern: /at this point in time/gi, weight: 6 },
+      { pattern: /with regard to/gi, weight: 5 }, { pattern: /for the purpose of/gi, weight: 6 },
+      { pattern: /plays a (crucial|important|significant|vital) role/gi, weight: 7 },
+      { pattern: /in (today's|this) (modern|digital|contemporary) (world|society|era)/gi, weight: 7 },
+      { pattern: /in conclusion,?\s+(it is clear|we can see)/gi, weight: 8 },
+      { pattern: /furthermore,?\s+moreover/gi, weight: 6 }, { pattern: /last but not least/gi, weight: 6 },
+      { pattern: /cutting-edge technology/gi, weight: 5 }, { pattern: /revolutionize the way we/gi, weight: 7 },
+      { pattern: /delve into/gi, weight: 4 }, { pattern: /pave the way for/gi, weight: 5 },
+      { pattern: /leverage (technology|resources|expertise)/gi, weight: 5 },
+      { pattern: /unlock the potential of/gi, weight: 6 }, { pattern: /harness the power of/gi, weight: 6 }
+    ];
+
+    // ============== DETECTION ENGINE ==============
+    function detectAI(text) {
+      if (!text || text.trim().length < 20) return { score: 50 };
+      
+      const isThai = /[\u0E00-\u0E7F]/.test(text);
+      const patterns = isThai ? aiPatternsThai : aiPatternsEng;
+      
+      let patternScore = 0;
+      patterns.forEach(p => {
+        const matches = text.match(p.pattern);
+        if (matches) patternScore += matches.length * p.weight;
+      });
+
+      // Perplexity (predictability)
+      const sentences = text.split(/[.!?\u0E4C\u0E49\n]+/).filter(s => s.trim().length > 10);
+      let uniformityScore = 0;
+      if (sentences.length > 2) {
+        const lengths = sentences.map(s => s.trim().length);
+        const avgLen = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+        const variance = lengths.reduce((sum, len) => sum + Math.pow(len - avgLen, 2), 0) / lengths.length;
+        if (variance < 500) uniformityScore = 15; // Low variance = AI
+      }
+
+      // Structure markers
+      let structureScore = 0;
+      if (/first(ly)?[,.]?\s*second(ly)?/i.test(text) || /\d+\.\s+[^\n]+\n\d+\.\s+/.test(text)) {
+        structureScore = 8;
+      }
+
+      // Normalize
+      const textLenScore = Math.min(text.length / 100, 30); // Longer text = more confidence
+      const finalScore = Math.min(98, Math.max(5, 
+        20 + // Base score
+        (patternScore / (text.length / 50) * 10) + 
+        uniformityScore + 
+        structureScore +
+        (isThai ? 10 : 0) // Thai AI models are often more formal
+      ));
+
+      return { score: Math.round(finalScore) };
+    }
+
+    // ============== HUMANIZATION ENGINE ==============
+    const humanizationMap = {
+      th: {
+        formal: [
+          ['ได้ดำเนินการ', 'ดำเนินการ'], ['เป็นสิ่งที่', 'คือ'], ['มีความสำคัญ', 'สำคัญ'],
+          ['ในปัจจุบัน', 'ตอนนี้'], ['อย่างมีประสิทธิภาพ', 'ได้ผลดี'], ['เนื่องจากว่า', 'เพราะ'],
+          ['เข้ามามีบทบาท', 'มีบทบาท'], ['มีส่วนร่วม', 'ร่วม'], ['อย่างมีนัยสำคัญ', 'ชัดเจน'],
+          ['สร้างความเปลี่ยนแปลง', 'เปลี่ยนแปลง'], ['ทุกมิติ', 'ทุกด้าน'], ['วิถีชีวิต', 'ชีวิต'],
+          ['จะเห็นได้ว่า', 'เห็นได้ว่า'], ['กล่าวได้ว่า', 'กล่าวว่า'], ['ส่งผลให้', 'ทำให้'],
+          ['ด้วยเหตุนี้', 'ดังนั้น'], ['อย่างไรก็ตาม', 'แต่'], ['เพื่อให้เกิด', 'เพื่อ'],
+          ['เป็นไปได้ว่า', 'น่าจะ'], ['มีแนวโน้มที่จะ', 'น่าจะ'], ['จึงเป็นสิ่งจำเป็นที่', 'จึงต้อง']
+        ],
+        casual: [
+          ['ได้ดำเนินการ', 'ทำ'], ['เป็นสิ่งที่', 'คือ'], ['มีความสำคัญ', 'สำคัญ'],
+          ['ในปัจจุบัน', 'ตอนนี้'], ['เนื่องจากว่า', 'เพราะ'], ['เข้ามามีบทบาท', 'เข้ามาเกี่ยว'],
+          ['มีส่วนร่วม', 'ร่วมด้วย'], ['อย่างมีนัยสำคัญ', 'ชัดเจนมาก'], ['สร้างความเปลี่ยนแปลง', 'เปลี่ยน'],
+          ['ทุกมิติ', 'ทุกด้าน'], ['วิถีชีวิต', 'ชีวิต'], ['จะเห็นได้ว่า', 'เห็นๆ'],
+          ['กล่าวได้ว่า', 'บอกได้ว่า'], ['ส่งผลให้', 'เลยทำให้'], ['ด้วยเหตุนี้', 'ก็เลย'],
+          ['อย่างไรก็ตาม', 'แต่ว่า'], ['เพื่อให้เกิด', 'เพื่อ'], ['เป็นไปได้ว่า', 'น่าจะ'],
+          ['มีแนวโน้มที่จะ', 'น่าจะ'], ['จึงเป็นสิ่งจำเป็นที่', 'ก็เลยต้อง']
+        ]
+      },
+      en: {
+        formal: [
+          ['in order to', 'to'], ['due to the fact that', 'because'], ['has the ability to', 'can'],
+          ['at this point in time', 'currently'], ['a large number of', 'many'], ['the majority of', 'most'],
+          ['plays a crucial role', 'is crucial'], ['plays an important role', 'is important'],
+          ['in conclusion, it is clear that', 'clearly,'], ['revolutionize the way we', 'transform how we']
+        ],
+        casual: [
+          ['in order to', 'to'], ['due to the fact that', 'cause'], ['has the ability to', 'can'],
+          ['at this point in time', 'right now'], ['a large number of', 'lots of'], ['the majority of', 'most'],
+          ['plays a crucial role', 'matters a lot'], ['plays an important role', 'is important'],
+          ['in conclusion', 'so basically'], ['revolutionize the way we', 'change how we'],
+          ['furthermore', 'also'], ['moreover', 'plus'], ['consequently', 'so']
+        ]
+      }
+    };
+
+    function humanizeText(text, tone, lang) {
+      if (!text) return '';
+      let result = text;
+      const map = humanizationMap[lang]?.[tone] || humanizationMap.th.formal;
+      
+      map.forEach(([from, to]) => {
+        result = result.replace(new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), to);
+      });
+
+      // Add slight variation
+      if (lang === 'th') {
+        result = result.replace(/ๆๆ+/g, 'ๆ');
+      }
+      return result;
+    }
+
+    // ============== DOM ELEMENTS & INIT ==============
+    const el = (id) => document.getElementById(id);
+    const inputText = el('inputText'), outputText = el('outputText');
+    const processBtn = el('processBtn'), detectOnlyBtn = el('detectOnlyBtn');
+    const processingIndicator = el('processingIndicator');
+    const particlesContainer = el('particles');
+
+    function createParticles() {
+      for (let i = 0; i < 15; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = `${Math.random() * 100}%`;
+        p.style.top = `${Math.random() * 100}%`;
+        p.style.animationDelay = `${Math.random() * 10}s`;
+        particlesContainer.appendChild(p);
+      }
+    }
+
+    function initScrollReveal() {
+      const reveals = document.querySelectorAll('.reveal');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => e.isIntersecting && e.target.classList.add('visible'));
+      }, { threshold: 0.1 });
+      reveals.forEach(r => observer.observe(r));
+    }
+
+    function countWords(text) {
+      if (!text) return 0;
+      return selectedLang === 'th' ? Math.ceil(text.trim().length / 5) : text.trim().split(/\s+/).filter(w => w).length;
+    }
+
+    function updateUI(scoreBefore, scoreAfter) {
+      el('aiBarBefore').style.width = `${scoreBefore}%`;
+      el('humanBarBefore').style.width = `${100 - scoreBefore}%`;
+      el('aiScoreBeforeLabel').textContent = `${scoreBefore}% AI`;
+      el('aiScoreBeforeLabel').className = `font-display font-bold text-lg ${scoreBefore > 70 ? 'text-red-400' : scoreBefore > 40 ? 'text-amber-400' : 'text-emerald-400'}`;
+
+      el('aiBarAfter').style.width = `${scoreAfter}%`;
+      el('humanBarAfter').style.width = `${100 - scoreAfter}%`;
+      el('aiScoreAfterLabel').textContent = `${scoreAfter}% AI`;
+      el('aiScoreAfterLabel').className = `font-display font-bold text-lg ${scoreAfter > 70 ? 'text-red-400' : scoreAfter > 40 ? 'text-amber-400' : 'text-emerald-400'}`;
+    }
+
+    function showToast(title, msg) {
+      el('toastTitle').textContent = title;
+      el('toastMessage').textContent = msg;
+      el('toast').classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => el('toast').classList.add('translate-y-20', 'opacity-0'), 3000);
+    }
+
+    // 🛡️ ปรับปรุงระบบประมวลผลฝั่งหน้าบ้านแบบปลอดภัย (Bulletproof Try-Catch-Finally)
+    async function processText(detectOnly = false) {
+      const text = inputText.value.trim();
+      if (!text) return showToast('ผิดพลาด', 'กรุณาใส่ข้อความ');
+
+      const wCount = countWords(text);
+      if (wCount > wordQuota) return showToast('เกินโควตา', 'กรุณาอัปเกรด');
+
+      // 1. เปิดตัวหมุนแสดงสถานะ
+      processingIndicator.classList.remove('hidden');
+      el('processingStatus').textContent = 'กำลังติดต่อเซิร์ฟเวอร์หลังบ้าน...';
+
+      try {
+        const before = detectAI(text);
+        let after = { score: before.score };
+
+        if (!detectOnly) {
+          el('processingStatus').textContent = 'กำลังส่งไปเรียบเรียงประโยคภาษาไทย...';
+
+          const response = await fetch('/api/humanize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              text,
+              tone: selectedTone
+            })
+          });
+
+          // ดักกรณีเว็บล่มระดับเซิร์ฟเวอร์
+          if (!response.ok) {
+            throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาดรหัส HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          // ดักกรณีหลังบ้านส่งแจ้งเตือน success: false (เช่น ปัญหาเรื่องคีย์หรือโควตาหมด)
+          if (!data.success) {
+            throw new Error(data.error || 'หลังบ้านส่งข้อผิดพลาดลึกลับกลับมา');
+          }
+
+          const humanized = data.output;
+          after = detectAI(humanized);
+
+          outputText.innerHTML = humanized
+            .split('\n')
+            .map(p => `<p class="mb-2">${p}</p>`)
+            .join('');
+
+          el('outputWordCount').textContent = countWords(humanized);
+        }
+
+        updateUI(before.score, after.score);
+        el('inputWordCount').textContent = wCount;
+        showToast('สำเร็จ', `ประมวลผลเรียบร้อยแล้ว`);
+
+      } catch (error) {
+        console.error("หน้าบ้านตรวจพบความพัง:", error);
+        // แสดงตัวหนังสือเออเร่อสีแดงบนหน้าจอตรงๆ ไม่ยอมให้เกิดอาการหมุนค้าง
+        outputText.innerHTML = `<span class="text-red-400 font-bold">❌ เกิดข้อผิดพลาดจากระบบ: ${error.message}</span>`;
+        showToast('เกิดข้อผิดพลาด', 'ไม่สามารถคุยกับเซิร์ฟเวอร์ได้');
+      } finally {
+        // 🎯 สวิตช์ปิดตายตัวหมุน: ไม่ว่าจะทำงานสำเร็จหรือเกิดปัญหาขึ้น บรรทัดนี้จะบังคับปิดตัวหมุน 100%
+        processingIndicator.classList.add('hidden');
+      }
+    }
+
+    // Event Listeners
+    processBtn.addEventListener('click', () => processText(false));
+    detectOnlyBtn.addEventListener('click', () => processText(true));
+    
+    el('toneSelector').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tone]');
+      if (btn) {
+        document.querySelectorAll('#toneSelector .tone-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedTone = btn.dataset.tone;
+      }
+    });
+
+    el('langSelector').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-lang]');
+      if (btn) {
+        document.querySelectorAll('#langSelector .tone-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedLang = btn.dataset.lang;
+      }
+    });
+
+    el('clearInput').addEventListener('click', () => { inputText.value = ''; el('inputWordCount').textContent = '0'; });
+    
+    el('copyOutput').addEventListener('click', () => {
+      const txt = outputText.textContent;
+      if (txt && !txt.includes('ผลลัพธ์จะแสดง')) {
+        navigator.clipboard.writeText(txt);
+        showToast('คัดลอกแล้ว', 'คัดลอกไปยังคลิปบอร์ด');
+      }
+    });
+
+    el('mobileMenuBtn').addEventListener('click', () => el('mobileMenu').classList.add('open'));
+    el('closeMobileMenu').addEventListener('click', () => el('mobileMenu').classList.remove('open'));
+
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t) { t.scrollIntoView({ behavior: 'smooth' }); el('mobileMenu').classList.remove('open'); }
+      });
+    });
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+      createParticles();
+      initScrollReveal();
+      updateUI(0, 0);
+    });
+  </script>
+</body>
+</html>
