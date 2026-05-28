@@ -7,99 +7,89 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      output: 'Method Not Allowed'
-    });
-  }
-
   try {
     const { text, tone } = req.body;
 
-    if (!text) {
-      return res.status(400).json({
+    if (!text || text.trim() === "") {
+      return res.status(200).json({
         success: false,
-        output: 'กรุณาใส่ข้อความ'
+        error: "❌ หลังบ้านตรวจพบ: ไม่ได้รับข้อความต้นฉบับ"
       });
     }
 
     const prompts = {
-      formal: 'Rewrite in formal Thai tone.',
-      casual: 'Rewrite in casual Thai tone.',
-      business: 'Rewrite in professional business Thai tone.',
-      storytelling: 'Rewrite in storytelling Thai style.'
+      formal: `You are an expert Thai human editor. Rewrite the text in a highly formal Thai tone. Return ONLY rewritten text.`,
+      casual: `You are an expert Thai writer. Rewrite the text in a natural casual Thai tone. Return ONLY rewritten text.`,
+      business: `You are an expert Thai business copywriter. Rewrite the text in a professional business tone. Return ONLY rewritten text.`,
+      storytelling: `You are an expert Thai storyteller. Rewrite the text in storytelling style. Return ONLY rewritten text.`
     };
 
     const systemPrompt = prompts[tone] || prompts.formal;
 
-    // เช็ก API KEY
-    if (!process.env.OPENROUTER_API_KEY) {
-      return res.status(500).json({
+    // เรายังคงใช้ชื่อตัวแปร GEMINI_API_KEY ใน Vercel ได้เลย จะได้ไม่ต้องไปลบสร้างใหม่
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(200).json({
         success: false,
-        output: '❌ ไม่พบ OPENROUTER_API_KEY'
+        error: "❌ หลังบ้านตรวจพบ: ไม่พบ API Key ใน Environment Variables"
       });
     }
 
-    // ยิง OpenRouter
-    const response = await fetch(
-      'https://openrouter.ai/api/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'deepseek/deepseek-chat-v3-0324:free',
+    // ติดต่อเซิร์ฟเวอร์ OpenRouter
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`,
+        "Content-Type": "application/json",
+        // OpenRouter แนะนำให้ใส่ URL เว็บเรา เพื่อกันคนอื่นแอบอ้าง
+        "HTTP-Referer": "https://humanize-ai.vercel.app", 
+        "X-Title": "Humanize AI Thai"
+      },
+      body: JSON.stringify({
+        // สามารถเปลี่ยนชื่อโมเดลได้ตามที่มีในเว็บ OpenRouter
+        model: "google/gemini-2.0-flash-001", 
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: text }
+        ]
+      })
+    });
 
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt
-            },
-            {
-              role: 'user',
-              content: text
-            }
-          ]
-        })
+    if (!response.ok) {
+      let errorMsg = "";
+      try {
+        const errData = await response.json();
+        errorMsg = errData.error?.message || JSON.stringify(errData);
+      } catch (e) {
+        errorMsg = `HTTP Status ${response.status}`;
       }
-    );
+      return res.status(200).json({
+        success: false,
+        error: `❌ OpenRouter ปฏิเสธการทำงาน: ${errorMsg}`
+      });
+    }
 
     const data = await response.json();
 
-    console.log('OPENROUTER:', data);
-
-    // ถ้ามี error
-    if (data.error) {
-      return res.status(500).json({
-        success: false,
-        output: `❌ ${JSON.stringify(data.error)}`
-      });
-    }
-
-    const output = data?.choices?.[0]?.message?.content;
-
-    // ถ้าไม่มี output
+    // แกะข้อความตามโครงสร้างของ OpenRouter
+    const output = data.choices?.[0]?.message?.content;
+    
     if (!output) {
-      return res.status(500).json({
+      return res.status(200).json({
         success: false,
-        output: `❌ AI ไม่ตอบกลับ\n\n${JSON.stringify(data)}`
+        error: `❌ ไม่สามารถแกะข้อความจาก OpenRouter ได้ โครงสร้างที่ได้รับ: ${JSON.stringify(data)}`
       });
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       output: output.trim()
     });
 
   } catch (err) {
-    console.log(err);
-
-    return res.status(500).json({
+    console.error("Fatal Backend Error:", err);
+    res.status(200).json({
       success: false,
-      output: `❌ Server Error: ${err.message}`
+      error: `❌ ระบบหลังบ้านเกิดข้อผิดพลาด: ${err.message}`
     });
   }
 }
