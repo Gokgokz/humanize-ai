@@ -26,7 +26,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const response = await fetch('https://api.z.ai/v1/chat/completions', {
+    // 🌐 เปลี่ยนมาใช้ Endpoint มาตรฐานของการเรียก AI Direct ที่มักจะเป็นลิงก์หลักของ z.ai
+    // (หากทาง z.ai มีคู่มือระบุลิงก์เฉพาะ สามารถปรับตามคู่มือเขาได้เลยครับ)
+    const response = await fetch('https://api.z.ai/v1/chat', { 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -42,7 +44,6 @@ export default async function handler(req, res) {
       })
     });
 
-    // ถ้า HTTP Status พัง (เช่น 401 คีย์ผิด หรือ 404 หาลิงก์ไม่เจอ)
     if (!response.ok) {
       const errText = await response.text();
       return res.status(200).json({
@@ -60,20 +61,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // --- ตรวจสอบรูปแบบข้อมูลและแกะข้อความแบบละเอียด ป้องกันการค้าง ---
     let output = '';
-    
     if (data.choices?.[0]?.message?.content) {
-      // รูปแบบมาตรฐาน OpenAI
       output = data.choices[0].message.content;
     } else if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      // รูปแบบมาตรฐาน Gemini Direct
       output = data.candidates[0].content.parts[0].text;
     } else if (data.output) {
-      // รูปแบบเฉพาะของ z.ai แบบย่อ
       output = data.output;
     } else {
-      // หากส่งโครงสร้างอื่นแปลกๆ มา ให้ส่งดิบออกไปดูเลย จะได้ไม่ค้าง
       output = `❌ โครงสร้างข้อมูลไม่ถูกต้อง ได้รับ: ${JSON.stringify(data)}`;
     }
 
