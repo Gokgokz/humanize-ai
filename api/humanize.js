@@ -26,15 +26,21 @@ export default async function handler(req, res) {
 
     const systemPrompt = prompts[tone] || prompts.formal;
 
-    // 💡 ลบตัวเช็ค Environment Variables เก่าออกแล้ว ยิงตรงหาคีย์นี้ทันที!
-    // ⚠️ อย่าลืมเปลี่ยนคำว่า ใส่_API_KEY_ตรงนี้ ให้เป็นคีย์ OpenRouter จริงของคุณ (sk-or-v1-...)
-    const MY_OPENROUTER_KEY = "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"; 
+    // 🔒 ดึงคีย์ผ่านระบบ Environment Variable อย่างปลอดภัย (บอต GitHub จะไม่มีวันเห็นคีย์นี้)
+    const OPENROUTER_KEY = process.env.GEMINI_API_KEY; 
+
+    if (!OPENROUTER_KEY) {
+      return res.status(200).json({
+        success: false,
+        error: "❌ หลังบ้านตรวจพบ: ไม่พบคีย์ในหน้า Settings ของ Vercel (กรุณาทำตามขั้นตอนที่ 2 และ 3 ครับ)"
+      });
+    }
 
     // ติดต่อเซิร์ฟเวอร์ OpenRouter
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${MY_OPENROUTER_KEY}`,
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://humanize-ai-rho.vercel.app", 
         "X-Title": "Humanize AI Thai"
