@@ -49,8 +49,8 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           // ใช้ system_instruction แยกกับข้อความ user (แนะนำสำหรับ 1.5 และ 2.0)
           system_instruction: {
-            parts: [{ text: systemPrompt }]
-          },
+  parts: [{ text: systemPrompt }]
+},
           contents: [
             {
               parts: [{ text: text }]
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const output = data.candidates?.[0]?.content?.parts?.[0]?.text || 'ไม่สามารถอ่านข้อความจาก AI ได้';
+    const output = data?.candidates?.[0]?.content?.parts?.[0]?.text ||  data?.candidates?.[0]?.output ||  'ไม่สามารถอ่านข้อความจาก AI ได้';
 
     res.status(200).json({
       success: true,
