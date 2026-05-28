@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
     // 💡 ลบตัวเช็ค Environment Variables เก่าออกแล้ว ยิงตรงหาคีย์นี้ทันที!
     // ⚠️ อย่าลืมเปลี่ยนคำว่า ใส่_API_KEY_ตรงนี้ ให้เป็นคีย์ OpenRouter จริงของคุณ (sk-or-v1-...)
-    const MY_OPENROUTER_KEY = "ใส่_API_KEY_ตรงนี้"; 
+    const MY_OPENROUTER_KEY = "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"; 
 
     // ติดต่อเซิร์ฟเวอร์ OpenRouter
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
