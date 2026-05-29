@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🌟 ระบบสวมบทบาทนักเขียนบทความพรีเมียม (เปลี่ยนเป็นตำแหน่งสากลทั้งหมด)
+    // 🌟 ระบบสวมบทบาทนักเขียนบทความพรีเมียม (คงเดิมของคุณไว้ 100%)
     const toneSettings = {
       formal: "You are a top-tier Thai editorial director and senior business journalist. Rewrite the text into highly polished, analytical, and authoritative formal Thai. Use elite structural hooks and professional terminology.",
       casual: "You are an elite Thai creative content director. Rewrite the text into an engaging, smooth, and highly thought-provoking casual Thai tone. Make it extremely readable with active human pacing.",
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       storytelling: "You are a master narrative essayist and creative writer. Maximize the use of visual analogies, historical contrasts, and compelling hooks to capture the reader's attention."
     };
 
-    // 🧠 ระบบโครงสร้างภาษามนุษย์ระดับสูง (ถอดชื่อแบรนด์ออก 100%)
+    // 🧠 ระบบโครงสร้างภาษามนุษย์ระดับสูง (คงเดิมของคุณไว้ 100%)
     const deepLinguisticBlueprint = `
     CRITICAL NARRATIVE ARCHITECTURE & STRUCTURE RULES:
     
@@ -139,12 +139,39 @@ export default async function handler(req, res) {
       });
     }
 
+    // ================= 🧼 เริ่มกระบวนการกวาดล้างเศษโค้ด (Anti-Code Leak) =================
+    let cleanedContent = rawContent.trim();
+    
+    // ดักขลิบหัว-ท้าย ขจัดแท็กมาร์กดาวน์จำพวก ```json หรือ ``` ออกไปให้หมดเกลี้ยง
+    cleanedContent = cleanedContent
+      .replace(/^```json/i, '')
+      .replace(/^```/, '')
+      .replace(/```$/, '')
+      .trim();
+
     let aiJson;
     try {
-      aiJson = JSON.parse(rawContent);
+      aiJson = JSON.parse(cleanedContent);
     } catch (e) {
-      aiJson = { humanized_text: rawContent, remaining_ai_score: 4 };
+      // แผนสำรองฉุกเฉิน: หาก JSON แตก ให้ดึงข้อความจากคีย์ "humanized_text" โดยใช้ Regex ตรงๆ
+      const textMatch = cleanedContent.match(/"humanized_text"\s*:\s*"([\s\S]*?)"\s*[,}]/);
+      if (textMatch && textMatch[1]) {
+        aiJson = { humanized_text: textMatch[1], remaining_ai_score: 4 };
+      } else {
+        // แผนสุดท้าย: ขูดลอกปีกกาและโครงสร้าง JSON ออกให้เหลือเนื้อภาษาไทยดิบๆ
+        let fallbackText = cleanedContent
+          .replace(/^[{\s]*"humanized_text"\s*:\s*"/, '')
+          .replace(/"\s*,\s*"remaining_ai_score"[\s\S]*$/, '')
+          .replace(/"\s*}[\s\S]*$/, '');
+        aiJson = { humanized_text: fallbackText, remaining_ai_score: 4 };
+      }
     }
+
+    // ล้างสแลชส่วนเกินที่มักจะหลุดติดมาจากการแปลงข้อมูลประเภท String ออกไป
+    let finalOutput = aiJson.humanized_text 
+      ? aiJson.humanized_text.replace(/\\n/g, '\n').replace(/\\"/g, '"') 
+      : cleanedContent;
+    // =================================================================================
 
     let baseScore = parseInt(aiJson.remaining_ai_score) || 4;
     const jitter = Math.floor(Math.random() * 3) - 1; 
@@ -160,7 +187,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       success: true,
-      output: aiJson.humanized_text,
+      output: finalOutput, // ใช้ตัวแปรล้างเศษโค้ดเรียบร้อยแล้วส่งขึ้นหน้าจอ
       aiScoreAfter: finalScore 
     });
 
