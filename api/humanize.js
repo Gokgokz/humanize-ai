@@ -17,15 +17,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🌟 ระบบบังคับสวมบทบาทนักเขียนบทความเชิงวิเคราะห์ระดับท็อป
+    // 🌟 ระบบสวมบทบาทนักเขียนบทความพรีเมียม (เปลี่ยนเป็นตำแหน่งสากลทั้งหมด)
     const toneSettings = {
-      formal: "You are the chief editorial writer of Longtunman. Rewrite the text into a highly polished, analytical, and authoritative Thai business profile. Maintain professional credibility but completely adopt the iconic narrative architecture.",
-      casual: "You are the creative director of Longtunman. Rewrite the text into an engaging, smooth, and highly thought-provoking casual Thai tone. Make it extremely readable with active human dialogue structures.",
-      business: "You are a premium corporate strategist writing for Longtunman. Focus heavily on market dynamics, strategic movements, and high-impact metrics blended into a gripping corporate story.",
-      storytelling: "You are the master storyteller of Longtunman. Maximize the use of visual analogies, historical contrasts, and emotional hooks to capture the reader's imagination from the very first line."
+      formal: "You are a top-tier Thai editorial director and senior business journalist. Rewrite the text into highly polished, analytical, and authoritative formal Thai. Use elite structural hooks and professional terminology.",
+      casual: "You are an elite Thai creative content director. Rewrite the text into an engaging, smooth, and highly thought-provoking casual Thai tone. Make it extremely readable with active human pacing.",
+      business: "You are a premium corporate communications expert. Focus heavily on market dynamics, strategic movements, and high-impact metrics blended into a gripping professional narrative.",
+      storytelling: "You are a master narrative essayist and creative writer. Maximize the use of visual analogies, historical contrasts, and compelling hooks to capture the reader's attention."
     };
 
-    // 🧠 ระบบ Reverse-Engineering โครงสร้างตามข้อมูลดิบในไฟล์ CSV ของคุณ
+    // 🧠 ระบบโครงสร้างภาษามนุษย์ระดับสูง (ถอดชื่อแบรนด์ออก 100%)
     const deepLinguisticBlueprint = `
     CRITICAL NARRATIVE ARCHITECTURE & STRUCTURE RULES:
     
@@ -33,16 +33,16 @@ export default async function handler(req, res) {
        Never start with dry definitions. You must restructure the opening using either:
        - A vivid visual analogy (e.g., "ลองนึกภาพว่าเรากำลังขับรถอยู่บนถนนที่ทัศนวิสัยไม่ค่อยดี... สถานการณ์ในตอนนี้ ก็แทบไม่ต่างกัน..")
        - A time-based contrast (e.g., "40 ปีที่แล้ว... แต่ในวันนี้.. ตัวละครใหม่ที่เข้ามาเปลี่ยนเกม คือ...")
-       - A global vs local contrast (e.g., "ในสภาวะที่อุตสาหกรรมทั่วโลกกำลังเจอแรงกดดัน... แต่มีบริษัทไทยรายหนึ่ง ที่สวนกระแส...")
+       - A global vs local contrast (e.g., "In a volatile market... but there is one entity that stands out...")
 
     2. THE "PUNCHY PACING" BREAKS (formatting style):
        - Strictly break text into very short, digestible paragraphs (maximum 1-2 sentences per paragraph block).
        - Frequently use double dots ".." at the end of transition lines to create anticipation (e.g., "สถานการณ์ในตอนนี้ ก็แทบไม่ต่างกัน..", "แต่ในวันนี้..").
 
     3. THE "RHETORICAL INTERACTION" INJECTION:
-       You must isolate questions or transition prompts into their own single-line paragraphs to guide the reader's focus. Use identical patterns from the dataset:
+       Isolate questions or transition prompts into their own single-line paragraphs to guide the reader's focus. Use these professional native generic patterns:
        - "คำถามคือ ในสภาวะแบบนี้ เราควรวางหมากอย่างไร?"
-       - "แล้วเรื่องราวมันเป็นอย่างไร? ลงทุนแมนจะเล่าให้ฟัง"
+       - "แล้วเรื่องราวมันเป็นอย่างไร? เราจะมาสรุปให้ฟัง"
        - "จุดที่น่าสนใจคือ..."
        - "และเรื่องนี้ ก็ใกล้ตัวเรากว่าที่คิด.."
 
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
        - Forbidden phrases: "สิ่งสำคัญคือต้องสังเกตว่า", "ในโลกปัจจุบันที่เปลี่ยนแปลงอย่างรวดเร็ว", "ในฐานะที่เป็น", "มีบทบาทสำคัญในการ", "อย่างมีประสิทธิภาพ", "ในบริบทของ", "สรุปได้ว่า".
 
     --------------------------------------------------
-    FEW-SHOT ARCHITECTURAL EXAMPLES (STUDY THESE FLOWS FROM THE DATASET):
+    FEW-SHOT ARCHITECTURAL EXAMPLES:
     
     [Input AI Text]:
     "เทคโนโลยีบล็อกเชนและปัญญาประดิษฐ์กำลังเข้ามามีบทบาทสำคัญในระบบเศรษฐกิจโลกอย่างมากในปัจจุบัน ทำให้ระบบการเงินแบบเดิมที่ควบคุมโดยธนาคารที่มีข้อจำกัดเรื่องเวลาทำการและวันหยุดราชการเสื่อมความนิยมลงอย่างรวดเร็วเนื่องจากไม่มีประสิทธิภาพเพียงพอสำหรับอนาคต"
