@@ -949,6 +949,27 @@
       });
     });
 
+    // =======================================================================
+    // 🛠️ ระบบดักจับการ Copy (แก้ปัญหาลากคลุมแล้วไปวางใน Word เป็นสีขาว/ไม่เว้นบรรทัด)
+    // =======================================================================
+    document.addEventListener('copy', (e) => {
+      const selection = window.getSelection();
+      const outputDiv = document.getElementById('outputText');
+
+      // ตรวจสอบว่าผู้ใช้กำลังลากคลุมข้อความที่อยู่ในกล่อง "ข้อความที่ปรับแล้ว" หรือไม่
+      if (selection.rangeCount > 0 && outputDiv.contains(selection.anchorNode)) {
+        e.preventDefault(); // หยุดการ Copy แบบติดสีติด Format ของเบราว์เซอร์
+
+        // 1. ดึงมาเฉพาะข้อความดิบๆ (สีขาวและฟอนต์จะไม่ตามไป)
+        let plainText = selection.toString();
+
+        // 2. จัดระเบียบการเว้นบรรทัด
+        plainText = plainText.replace(/([^\n])\n([^\n])/g, '$1\n\n$2');
+
+        // 3. ยัดข้อความดิบที่จัดระเบียบแล้ว ลงใน Clipboard
+        e.clipboardData.setData('text/plain', plainText);
+      }
+    });
     // Init
     document.addEventListener('DOMContentLoaded', () => {
       loadHistory();
