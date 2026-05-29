@@ -484,6 +484,7 @@
     let selectedTone = 'formal';
     let selectedLang = 'th';
     let historyData = [];
+    let lastOutputText = '';
 
     // ============== AI PATTERNS (มัลติเลเยอร์คำนวณระดับสูง - ละเอียดยิบ) ==============
     const aiPatternsThai = [
@@ -749,7 +750,7 @@
           }
 
           const humanized = data.output;
-          
+          lastOutputText = humanized; // 🎯 เพิ่มบรรทัดนี้: บังคับให้ระบบจำข้อความดิบพร้อม \n ไว้ทันที
           // 🎯 ดึงคะแนนแม่นๆ ที่ประเมินโดยสมอง AI หลังบ้านมาใช้โดยตรง ไม่ต้องเดาคำเชื่อมเองแล้ว!
           after = { score: data.aiScoreAfter }; 
 
@@ -799,13 +800,19 @@
       }
     });
 
-    el('clearInput').addEventListener('click', () => { inputText.value = ''; el('inputWordCount').textContent = '0'; });
+    el('clearInput').addEventListener('click', () => { 
+      inputText.value = ''; 
+      el('inputWordCount').textContent = '0'; 
+      outputText.innerHTML = '<span class="text-gray-500 italic">ผลลัพธ์จะแสดงที่นี่หลังจากกดประมวลผล...</span>';
+      lastOutputText = ''; // 👈 ล้างความจำตรงนี้ด้วย
+    });
     
     el('copyOutput').addEventListener('click', () => {
-      const txt = outputText.textContent;
-      if (txt && !txt.includes('ผลลัพธ์จะแสดง')) {
-        navigator.clipboard.writeText(txt);
+      if (lastOutputText) {
+        navigator.clipboard.writeText(lastOutputText);
         showToast('คัดลอกแล้ว', 'คัดลอกไปยังคลิปบอร์ด');
+      } else {
+        showToast('ผิดพลาด', 'ไม่มีข้อความให้คัดลอก');
       }
     });
 
