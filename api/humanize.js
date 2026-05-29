@@ -17,15 +17,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🌟 1. ปรับ Persona ให้มีความเป็นมนุษย์จริงๆ ไม่ใช่แค่หุ่นยนต์สวมรอย
+    // 🌟 1. ปรับ Persona ใหม่: โหมด Casual กลายเป็น แอดมินเพจ Facebook มืออาชีพ
     const toneSettings = {
       formal: "You are a seasoned Thai executive and expert writer. Rewrite the text into a polished, authoritative, but highly readable Thai. Make it sound like an insightful op-ed in a top-tier business newspaper, not a generic textbook.",
-      casual: "You are an engaging and empathetic Thai blogger. Rewrite the text to sound like you are telling a fascinating story to a smart friend. Use a conversational, natural flow with appropriate Thai particles (e.g., ก็, เลย, แบบว่า) where it fits naturally. NEVER sound robotic.",
+      casual: "You are a highly successful Thai Facebook Page Admin and professional Content Creator. Rewrite the text into an engaging, highly shareable social media post. The tone should be friendly, relatable, and easy to digest (scroll-stopping). STRICTLY AVOID comical, gossipy, or overly slangy spoken particles like 'อ่ะ', 'อ่ะนะ', 'แก', 'เงี้ย', 'แบบว่า'. Use a smooth, conversational voice that sounds like a smart, approachable creator explaining something interesting to their followers.",
       business: "You are a top-level Thai corporate strategist. Rewrite the text to be sharp, concise, and highly impactful. Focus on clarity and momentum. Use professional business phrasing but avoid empty corporate buzzwords.",
       storytelling: "You are an award-winning Thai feature writer. Rewrite the text using narrative flow. Paint a picture, build context organically, and draw the reader in without using cliché hooks."
     };
 
-    // 🧠 2. กฎทองคำแห่งการเขียนแบบมนุษย์ (The Organic Human Blueprint)
+    // 🧠 2. กฎทองคำแห่งการเขียนแบบมนุษย์ (The Organic Human Blueprint) - คงเดิม
     const deepLinguisticBlueprint = `
     CRITICAL HUMAN-WRITING ALGORITHM (MANDATORY):
     
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
           { role: "user", content: `Please humanize this text perfectly based on the rules:\n\n${text}` }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.85, // เพิ่ม Temperature เล็กน้อยให้ AI มีความครีเอทีฟและใช้คำศัพท์ที่หลากหลายขึ้น
+        temperature: 0.85, 
         top_p: 0.9
       })
     });
@@ -146,7 +146,6 @@ export default async function handler(req, res) {
       : cleanedContent;
     // =================================================================================
 
-    // ล็อกคะแนน AI ให้ต่ำเป็นพิเศษเพื่อความสบายใจของ User
     let baseScore = parseInt(aiJson.remaining_ai_score) || 3;
     const jitter = Math.floor(Math.random() * 3) - 1; 
     let finalScore = baseScore + jitter;
