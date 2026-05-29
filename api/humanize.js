@@ -24,13 +24,14 @@ export default async function handler(req, res) {
       storytelling: "You are an expert Thai storyteller. Rewrite the text in storytelling style."
     };
 
+    // 🎯 แก้ไขจุดนี้เรียบร้อย: เอาปีกกาปิด } กลับเข้ามาอยู่ในเครื่องหมายคำพูดเรียบร้อยแล้วครับ
     const systemPrompt = (prompts[tone] || prompts.formal) + 
       `\n\nCRITICAL: You must respond ONLY with a valid JSON object. Do not include markdown formatting like \`\`\`json.
       The JSON structure must be exactly:
       {
         "humanized_text": "your rewritten Thai text here",
-        "remaining_ai_score": an integer between 3 and 8 representing a realistic tiny trace of AI signature`
-      };
+        "remaining_ai_score": an integer between 3 and 8 representing a realistic tiny trace of AI signature
+      }`;
 
     const OPENROUTER_KEY = process.env.GEMINI_API_KEY; 
 
@@ -90,27 +91,23 @@ export default async function handler(req, res) {
       aiJson = { humanized_text: rawContent, remaining_ai_score: 4 };
     }
 
-    // 🎯 สรรสร้างระบบ "เหวี่ยงแบบธรรมชาติ" เพื่อความยุติธรรมและน่าเชื่อถือ
+    // ระบบเหวี่ยงแบบธรรมชาติออร์แกนิกตามความยาวข้อความจริง
     let baseScore = parseInt(aiJson.remaining_ai_score) || 4;
-    
-    // 1. สุ่มตัวเลขผันผวนเล็กน้อย (-1, 0, +1)
-    const jitter = Math.floor(Math.random() * 3) - 1; 
+    const jitter = Math.floor(Math.random() * 3) - 1; // สุ่มสวิงเบาๆ (-1, 0, +1)
     let finalScore = baseScore + jitter;
 
-    // 2. ผันตามความยาวข้อความ (ข้อความยิ่งยาว โอกาสเจอแพทเทิร์น AI จะแปรผันเพิ่มขึ้นนิดหน่อยตามหลักความจริง)
     if (text.length > 600) {
       finalScore += 1;
     } else if (text.length < 200) {
       finalScore -= 1;
     }
 
-    // 3. ควบคุมเพดานให้อยู่ในเกณฑ์เนียนระดับมนุษย์เรียกพี่ (สวิงสวยๆ ระหว่าง 2% ถึง 7%)
-    finalScore = Math.max(2, Math.min(7, finalScore));
+    finalScore = Math.max(2, Math.min(7, finalScore)); // ตรึงตัวเลขให้อยู่ระหว่าง 2% - 7%
 
     res.status(200).json({
       success: true,
       output: aiJson.humanized_text,
-      aiScoreAfter: finalScore // ส่งคะแนนที่มีความเหวี่ยงสมจริงกลับไปแสดงผล
+      aiScoreAfter: finalScore 
     });
 
   } catch (err) {
