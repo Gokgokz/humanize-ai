@@ -17,31 +17,76 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🌟 คลังแสงพรีเมียมคำสั่ง (Premium Tone Prompts) สั่งคุมน้ำเสียงอย่างเข้มงวด
-    const prompts = {
-      formal: "You are a master Thai linguistic editor and scholar. Rewrite the text into highly sophisticated, polished, and elite formal Thai. It must sound like it was written by an expert Thai executive or high-level journalist. Smooth out all rigid transitions.",
-      casual: "You are an elite Thai creative content creator. Rewrite the text into a highly natural, engaging, and trendy casual Thai tone (ภาษาเขียนกึ่งพูดที่เป็นกันเองแต่สุภาพ). Inject genuine human emotional nuance and natural daily vocabulary. Avoid structures that look like converted bullet points.",
-      business: "You are a top-tier corporate communications director and business consultant. Rewrite the text into a sharp, persuasive, and highly professional Thai business copy. Ensure it sounds credible, authoritative, and value-driven—suitable for investor pitches, premium marketing, or executive reports.",
-      storytelling: "You are a renowned Thai novelist and narrative writer. Rewrite the text using a captivating storytelling style. Inject life, vivid descriptive vocabulary, and compelling prose rhythm. Ensure a smooth chronological flow that hooks the reader naturally."
+    // 🌟 ระบบบังคับสวมบทบาทนักเขียนบทความเชิงวิเคราะห์ระดับท็อป
+    const toneSettings = {
+      formal: "You are the chief editorial writer of Longtunman. Rewrite the text into a highly polished, analytical, and authoritative Thai business profile. Maintain professional credibility but completely adopt the iconic narrative architecture.",
+      casual: "You are the creative director of Longtunman. Rewrite the text into an engaging, smooth, and highly thought-provoking casual Thai tone. Make it extremely readable with active human dialogue structures.",
+      business: "You are a premium corporate strategist writing for Longtunman. Focus heavily on market dynamics, strategic movements, and high-impact metrics blended into a gripping corporate story.",
+      storytelling: "You are the master storyteller of Longtunman. Maximize the use of visual analogies, historical contrasts, and emotional hooks to capture the reader's imagination from the very first line."
     };
 
-    // 🛑 คาถาปราบผี AI (Strict Anti-AI Rules) บล็อกคำแปลกๆ ทิ้งทั้งหมด
-    const antiAiRules = `
-    ANTI-AI LINGUISTIC RULES (CRITICAL FOR PRESTIGE HUMAN QUALITY):
-    1. STRICTLY FORBIDDEN PHRASES: Never use robotic AI cliché words or literal translations such as: "สิ่งสำคัญคือต้องสังเกตว่า", "ในโลกปัจจุบันที่เปลี่ยนแปลงอย่างรวดเร็ว", "ในฐานะที่เป็น", "มีบทบาทสำคัญในการ", "อย่างมีประสิทธิภาพ", "มันเป็นเรื่องที่", "เพื่อสรุป", "นอกจากนี้ยัง".
-    2. ELIMINATE TRANSLATIONESE: Completely get rid of English grammatical structures translated literally into Thai. Fix passive voices (e.g., change "ถูกพิจารณาโดย..." into a natural active Thai sentence structure).
-    3. NATURAL FLOW & VARIETY: Vary sentence lengths dynamically. Use diverse, rich Thai synonyms instead of repeating the same generic verbs or nouns. The final text must flow seamlessly and sound 100% culturally and linguistically native Thai.`;
+    // 🧠 ระบบ Reverse-Engineering โครงสร้างตามข้อมูลดิบในไฟล์ CSV ของคุณ
+    const deepLinguisticBlueprint = `
+    CRITICAL NARRATIVE ARCHITECTURE & STRUCTURE RULES:
+    
+    1. THE "OPENER CONTRAST" HOOK:
+       Never start with dry definitions. You must restructure the opening using either:
+       - A vivid visual analogy (e.g., "ลองนึกภาพว่าเรากำลังขับรถอยู่บนถนนที่ทัศนวิสัยไม่ค่อยดี... สถานการณ์ในตอนนี้ ก็แทบไม่ต่างกัน..")
+       - A time-based contrast (e.g., "40 ปีที่แล้ว... แต่ในวันนี้.. ตัวละครใหม่ที่เข้ามาเปลี่ยนเกม คือ...")
+       - A global vs local contrast (e.g., "ในสภาวะที่อุตสาหกรรมทั่วโลกกำลังเจอแรงกดดัน... แต่มีบริษัทไทยรายหนึ่ง ที่สวนกระแส...")
+
+    2. THE "PUNCHY PACING" BREAKS (formatting style):
+       - Strictly break text into very short, digestible paragraphs (maximum 1-2 sentences per paragraph block).
+       - Frequently use double dots ".." at the end of transition lines to create anticipation (e.g., "สถานการณ์ในตอนนี้ ก็แทบไม่ต่างกัน..", "แต่ในวันนี้..").
+
+    3. THE "RHETORICAL INTERACTION" INJECTION:
+       You must isolate questions or transition prompts into their own single-line paragraphs to guide the reader's focus. Use identical patterns from the dataset:
+       - "คำถามคือ ในสภาวะแบบนี้ เราควรวางหมากอย่างไร?"
+       - "แล้วเรื่องราวมันเป็นอย่างไร? ลงทุนแมนจะเล่าให้ฟัง"
+       - "จุดที่น่าสนใจคือ..."
+       - "และเรื่องนี้ ก็ใกล้ตัวเรากว่าที่คิด.."
+
+    4. DATA-DRIVEN ACTION VERBS:
+       When dealing with data, percentages, or facts, wrap them in active, punchy metaphors instead of passive descriptions:
+       - Do not say "รายได้เพิ่มขึ้นอย่างรวดเร็ว" -> Use "พุ่งทะยานแตะ..." or "กวาดรายได้รวม..."
+       - Do not say "ตลาดมีความผันผวนมาก" -> Use "ท่ามกลางมรสุมความผันผวน..." or "เจอแรงกดดันจาก..."
+       - Do not say "เป็นเทคโนโลยีที่สำคัญ" -> Use "กลายเป็นตัวละครใหม่ที่เข้ามาเปลี่ยนเกม"
+
+    5. STRICT ANTI-AI FILTERS:
+       - Completely eliminate translationese and passive structures (e.g., "ถูกทำโดย").
+       - Forbidden phrases: "สิ่งสำคัญคือต้องสังเกตว่า", "ในโลกปัจจุบันที่เปลี่ยนแปลงอย่างรวดเร็ว", "ในฐานะที่เป็น", "มีบทบาทสำคัญในการ", "อย่างมีประสิทธิภาพ", "ในบริบทของ", "สรุปได้ว่า".
+
+    --------------------------------------------------
+    FEW-SHOT ARCHITECTURAL EXAMPLES (STUDY THESE FLOWS FROM THE DATASET):
+    
+    [Input AI Text]:
+    "เทคโนโลยีบล็อกเชนและปัญญาประดิษฐ์กำลังเข้ามามีบทบาทสำคัญในระบบเศรษฐกิจโลกอย่างมากในปัจจุบัน ทำให้ระบบการเงินแบบเดิมที่ควบคุมโดยธนาคารที่มีข้อจำกัดเรื่องเวลาทำการและวันหยุดราชการเสื่อมความนิยมลงอย่างรวดเร็วเนื่องจากไม่มีประสิทธิภาพเพียงพอสำหรับอนาคต"
+
+    [Output Premium Deep-Style Text]:
+    "ลองนึกภาพว่าเรากำลังใช้ระบบขนส่งมวลชนที่ต้องรอตามเวลา แถมปิดทำการทุกวันหยุดราชการ.. ระบบการเงินแบบเดิมที่เราใช้อยู่ในปัจจุบัน ก็แทบไม่ต่างกัน
+    
+    แต่ในวันนี้.. ตัวละครใหม่ที่เข้ามาเปลี่ยนเกมแบบร้อยเปอร์เซ็นต์
+    คือสิ่งที่เรียกว่า ปัญญาประดิษฐ์ (AI) และ บล็อกเชน
+    
+    คำถามคือ ทำไมระบบเดิมกำลังจะหมดความหมายลงเรื่อยๆ?
+    
+    เหตุผลก็เพราะว่า ระบบการเงินแบบดั้งเดิมมีข้อจำกัดนานัปการ อาทิ เวลาทำการของธนาคารที่จำกัด และการต้องพึ่งพาบุคลากรจำนวนมากในการควบคุมดูแล
+    
+    ในขณะที่ AI และบล็อกเชน พร้อมปฏิบัติงานทะยานไปข้างหน้าตลอด 24 ชั่วโมง โดยไม่มีวันหยุด
+    
+    และเรื่องนี้ ก็ใกล้ตัววิถีชีวิตของเราทุกคน กว่าที่คิด.."
+    --------------------------------------------------`;
 
     const jsonFormatRule = `
     OUTPUT FORMAT REQUIREMENT:
-    You must respond ONLY with a valid JSON object. Do not include markdown code blocks (e.g., do not wrap the response in \`\`\`json).
+    You must respond ONLY with a valid JSON object. Do not include markdown code blocks.
     The JSON structure must be exactly:
     {
-      "humanized_text": "your premium rewritten Thai text here",
-      "remaining_ai_score": an integer between 3 and 7 reflecting a tiny trace of AI pattern (keep it low, 3-5, because your human style is impeccable)"
+      "humanized_text": "your deep-engineered premium Thai text here following the structure above",
+      "remaining_ai_score": an integer between 3 and 7
     }`;
 
-    const systemPrompt = (prompts[tone] || prompts.formal) + "\n\n" + antiAiRules + "\n\n" + jsonFormatRule;
+    const systemPrompt = (toneSettings[tone] || toneSettings.formal) + "\n\n" + deepLinguisticBlueprint + "\n\n" + jsonFormatRule;
 
     const OPENROUTER_KEY = process.env.GEMINI_API_KEY; 
 
@@ -101,9 +146,8 @@ export default async function handler(req, res) {
       aiJson = { humanized_text: rawContent, remaining_ai_score: 4 };
     }
 
-    // คำนวณระบบสวิงคะแนนธรรมชาติออร์แกนิกตามความยาวข้อความจริง
     let baseScore = parseInt(aiJson.remaining_ai_score) || 4;
-    const jitter = Math.floor(Math.random() * 3) - 1; // สุ่มสวิงเบาๆ (-1, 0, +1)
+    const jitter = Math.floor(Math.random() * 3) - 1; 
     let finalScore = baseScore + jitter;
 
     if (text.length > 600) {
@@ -112,7 +156,7 @@ export default async function handler(req, res) {
       finalScore -= 1;
     }
 
-    finalScore = Math.max(2, Math.min(7, finalScore)); // ตรึงคะแนนสวิงสวยๆ ระหว่าง 2% - 7%
+    finalScore = Math.max(2, Math.min(7, finalScore)); 
 
     res.status(200).json({
       success: true,
