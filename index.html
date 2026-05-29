@@ -642,42 +642,37 @@
       const wCount = countWords(text);
       if (wCount > wordQuota) return showToast('เกินโควตา', 'กรุณาอัปเกรด');
 
-      // 1. เปิดตัวหมุนแสดงสถานะ
       processingIndicator.classList.remove('hidden');
       el('processingStatus').textContent = 'กำลังติดต่อเซิร์ฟเวอร์หลังบ้าน...';
 
       try {
+        // คะแนนฝั่ง "ก่อนแปลง" ยังคงใช้ความเร็วของเครื่องคำนวณโชว์สถิติไปก่อนได้เลย
         const before = detectAI(text);
         let after = { score: before.score };
 
         if (!detectOnly) {
-          el('processingStatus').textContent = 'กำลังส่งไปเรียบเรียงประโยคภาษาไทย...';
+          el('processingStatus').textContent = 'กำลังส่งให้ Gemini เรียบเรียงและประเมินความเนียน...';
 
           const response = await fetch('/api/humanize', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              text,
-              tone: selectedTone
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, tone: selectedTone })
           });
 
-          // ดักกรณีเว็บล่มระดับเซิร์ฟเวอร์
           if (!response.ok) {
             throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาดรหัส HTTP ${response.status}`);
           }
 
           const data = await response.json();
 
-          // ดักกรณีหลังบ้านส่งแจ้งเตือน success: false (เช่น ปัญหาเรื่องคีย์หรือโควตาหมด)
           if (!data.success) {
-            throw new Error(data.error || 'หลังบ้านส่งข้อผิดพลาดลึกลับกลับมา');
+            throw new Error(data.error || 'หลังบ้านส่งข้อผิดพลาดกลับมา');
           }
 
           const humanized = data.output;
-          after = detectAI(humanized);
+          
+          // 🎯 ดึงคะแนนแม่นๆ ที่ประเมินโดยสมอง AI หลังบ้านมาใช้โดยตรง ไม่ต้องเดาคำเชื่อมเองแล้ว!
+          after = { score: data.aiScoreAfter }; 
 
           outputText.innerHTML = humanized
             .split('\n')
@@ -685,6 +680,9 @@
             .join('');
 
           el('outputWordCount').textContent = countWords(humanized);
+        } else {
+          // ถ้ากดตรวจจับอย่างเดียว ให้แสดงคะแนนหน้าบ้านทั้งสองฝั่งเท่ากัน
+          after = { score: before.score };
         }
 
         updateUI(before.score, after.score);
@@ -693,11 +691,9 @@
 
       } catch (error) {
         console.error("หน้าบ้านตรวจพบความพัง:", error);
-        // แสดงตัวหนังสือเออเร่อสีแดงบนหน้าจอตรงๆ ไม่ยอมให้เกิดอาการหมุนค้าง
         outputText.innerHTML = `<span class="text-red-400 font-bold">❌ เกิดข้อผิดพลาดจากระบบ: ${error.message}</span>`;
         showToast('เกิดข้อผิดพลาด', 'ไม่สามารถคุยกับเซิร์ฟเวอร์ได้');
       } finally {
-        // 🎯 สวิตช์ปิดตายตัวหมุน: ไม่ว่าจะทำงานสำเร็จหรือเกิดปัญหาขึ้น บรรทัดนี้จะบังคับปิดตัวหมุน 100%
         processingIndicator.classList.add('hidden');
       }
     }
