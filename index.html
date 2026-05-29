@@ -57,18 +57,19 @@
 
     // 🎨 3. ฟังก์ชันวาดหน้าตาประวัติลงบนจอ (UI Rendering)
     function renderHistoryUI() {
-      // ⚠️ หมายเหตุ: ตรวจสอบให้มั่นใจว่ากล่องข้อความประวัติใน HTML ของคุณมี id="historyContainer" นะครับ
-      const container = el('historyContainer') || el('historyList'); 
+      const container = document.getElementById('historyList'); 
+      const emptyState = document.getElementById('emptyHistory'); // ดึงตัวแปรกล่อง "ไม่มีประวัติ" มา
+      
       if (!container) return;
 
       if (historyData.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-8 text-gray-500 italic text-sm col-span-full">
-            ยังไม่มีประวัติการแปลงข้อความ
-          </div>
-        `;
+        container.innerHTML = ''; // ล้างลิสต์ประวัติให้ว่าง
+        if (emptyState) emptyState.style.display = 'block'; // เปิดการแสดงผลกล่อง "ยังไม่มีประวัติ"
         return;
       }
+
+      // 🎯 หัวใจสำคัญ: ถ้ามีประวัติแล้ว ให้ซ่อนกล่อง "ยังไม่มีประวัติ" ทิ้งไปเลย!
+      if (emptyState) emptyState.style.display = 'none'; 
 
       container.innerHTML = historyData.map(item => {
         const toneLabels = { formal: 'ทางการ', casual: 'เป็นกันเอง', business: 'ธุรกิจ', storytelling: 'เล่าเรื่อง' };
