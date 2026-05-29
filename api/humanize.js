@@ -17,21 +17,31 @@ export default async function handler(req, res) {
       });
     }
 
+    // 🌟 คลังแสงพรีเมียมคำสั่ง (Premium Tone Prompts) สั่งคุมน้ำเสียงอย่างเข้มงวด
     const prompts = {
-      formal: "You are an expert Thai human editor. Rewrite the text in a highly formal Thai tone.",
-      casual: "You are an expert Thai writer. Rewrite the text in a natural casual Thai tone.",
-      business: "You are an expert Thai business copywriter. Rewrite the text in a professional business tone.",
-      storytelling: "You are an expert Thai storyteller. Rewrite the text in storytelling style."
+      formal: "You are a master Thai linguistic editor and scholar. Rewrite the text into highly sophisticated, polished, and elite formal Thai. It must sound like it was written by an expert Thai executive or high-level journalist. Smooth out all rigid transitions.",
+      casual: "You are an elite Thai creative content creator. Rewrite the text into a highly natural, engaging, and trendy casual Thai tone (ภาษาเขียนกึ่งพูดที่เป็นกันเองแต่สุภาพ). Inject genuine human emotional nuance and natural daily vocabulary. Avoid structures that look like converted bullet points.",
+      business: "You are a top-tier corporate communications director and business consultant. Rewrite the text into a sharp, persuasive, and highly professional Thai business copy. Ensure it sounds credible, authoritative, and value-driven—suitable for investor pitches, premium marketing, or executive reports.",
+      storytelling: "You are a renowned Thai novelist and narrative writer. Rewrite the text using a captivating storytelling style. Inject life, vivid descriptive vocabulary, and compelling prose rhythm. Ensure a smooth chronological flow that hooks the reader naturally."
     };
 
-    // 🎯 แก้ไขจุดนี้เรียบร้อย: เอาปีกกาปิด } กลับเข้ามาอยู่ในเครื่องหมายคำพูดเรียบร้อยแล้วครับ
-    const systemPrompt = (prompts[tone] || prompts.formal) + 
-      `\n\nCRITICAL: You must respond ONLY with a valid JSON object. Do not include markdown formatting like \`\`\`json.
-      The JSON structure must be exactly:
-      {
-        "humanized_text": "your rewritten Thai text here",
-        "remaining_ai_score": an integer between 3 and 8 representing a realistic tiny trace of AI signature
-      }`;
+    // 🛑 คาถาปราบผี AI (Strict Anti-AI Rules) บล็อกคำแปลกๆ ทิ้งทั้งหมด
+    const antiAiRules = `
+    ANTI-AI LINGUISTIC RULES (CRITICAL FOR PRESTIGE HUMAN QUALITY):
+    1. STRICTLY FORBIDDEN PHRASES: Never use robotic AI cliché words or literal translations such as: "สิ่งสำคัญคือต้องสังเกตว่า", "ในโลกปัจจุบันที่เปลี่ยนแปลงอย่างรวดเร็ว", "ในฐานะที่เป็น", "มีบทบาทสำคัญในการ", "อย่างมีประสิทธิภาพ", "มันเป็นเรื่องที่", "เพื่อสรุป", "นอกจากนี้ยัง".
+    2. ELIMINATE TRANSLATIONESE: Completely get rid of English grammatical structures translated literally into Thai. Fix passive voices (e.g., change "ถูกพิจารณาโดย..." into a natural active Thai sentence structure).
+    3. NATURAL FLOW & VARIETY: Vary sentence lengths dynamically. Use diverse, rich Thai synonyms instead of repeating the same generic verbs or nouns. The final text must flow seamlessly and sound 100% culturally and linguistically native Thai.`;
+
+    const jsonFormatRule = `
+    OUTPUT FORMAT REQUIREMENT:
+    You must respond ONLY with a valid JSON object. Do not include markdown code blocks (e.g., do not wrap the response in \`\`\`json).
+    The JSON structure must be exactly:
+    {
+      "humanized_text": "your premium rewritten Thai text here",
+      "remaining_ai_score": an integer between 3 and 7 reflecting a tiny trace of AI pattern (keep it low, 3-5, because your human style is impeccable)"
+    }`;
+
+    const systemPrompt = (prompts[tone] || prompts.formal) + "\n\n" + antiAiRules + "\n\n" + jsonFormatRule;
 
     const OPENROUTER_KEY = process.env.GEMINI_API_KEY; 
 
@@ -91,7 +101,7 @@ export default async function handler(req, res) {
       aiJson = { humanized_text: rawContent, remaining_ai_score: 4 };
     }
 
-    // ระบบเหวี่ยงแบบธรรมชาติออร์แกนิกตามความยาวข้อความจริง
+    // คำนวณระบบสวิงคะแนนธรรมชาติออร์แกนิกตามความยาวข้อความจริง
     let baseScore = parseInt(aiJson.remaining_ai_score) || 4;
     const jitter = Math.floor(Math.random() * 3) - 1; // สุ่มสวิงเบาๆ (-1, 0, +1)
     let finalScore = baseScore + jitter;
@@ -102,7 +112,7 @@ export default async function handler(req, res) {
       finalScore -= 1;
     }
 
-    finalScore = Math.max(2, Math.min(7, finalScore)); // ตรึงตัวเลขให้อยู่ระหว่าง 2% - 7%
+    finalScore = Math.max(2, Math.min(7, finalScore)); // ตรึงคะแนนสวิงสวยๆ ระหว่าง 2% - 7%
 
     res.status(200).json({
       success: true,
