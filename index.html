@@ -24,6 +24,127 @@
         }
       }
     }
+    // ================= ระบบจัดการประวัติการใช้งาน (LocalStorage - ฟรี 0 Token) =================
+    
+    // 💾 1. ฟังก์ชันบันทึกประวัติลงเครื่องผู้ใช้
+    function saveToHistory(original, humanized, scoreBefore, scoreAfter, tone) {
+      const newItem = {
+        id: Date.now(), // ใช้เวลาปัจจุบันเป็น ID ของรายการ
+        timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        original: original,
+        humanized: humanized,
+        scoreBefore: scoreBefore,
+        scoreAfter: scoreAfter,
+        tone: tone
+      };
+
+      // เพิ่มของใหม่ไว้บนสุด และเก็บสูงสุดแค่ 10 รายการเพื่อไม่ให้เครื่องอืด
+      historyData.unshift(newItem);
+      if (historyData.length > 10) historyData.pop();
+
+      localStorage.setItem('humanize_history', JSON.stringify(historyData));
+      renderHistoryUI();
+    }
+
+    // 📂 2. ฟังก์ชันโหลดประวัติเก่าขึ้นมาทำงาน
+    function loadHistory() {
+      const saved = localStorage.getItem('humanize_history');
+      if (saved) {
+        try { historyData = JSON.parse(saved); } catch (e) { historyData = []; }
+      }
+      renderHistoryUI();
+    }
+
+    // 🎨 3. ฟังก์ชันวาดหน้าตาประวัติลงบนจอ (UI Rendering)
+    function renderHistoryUI() {
+      // ⚠️ หมายเหตุ: ตรวจสอบให้มั่นใจว่ากล่องข้อความประวัติใน HTML ของคุณมี id="historyContainer" นะครับ
+      const container = el('historyContainer') || el('historyList'); 
+      if (!container) return;
+
+      if (historyData.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-gray-500 italic text-sm col-span-full">
+            ยังไม่มีประวัติการแปลงข้อความ
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = historyData.map(item => {
+        const toneLabels = { formal: 'ทางการ', casual: 'เป็นกันเอง', business: 'ธุรกิจ', storytelling: 'เล่าเรื่อง' };
+        const toneLabel = toneLabels[item.tone] || 'ทั่วไป';
+
+        return `
+          <div class="p-4 rounded-xl bg-surface-card/40 border border-surface-border hover:border-gray-600 transition-all cursor-pointer group relative" onclick="loadHistoryItem(${item.id})">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs px-2 py-0.5 rounded bg-surface-border text-gray-300 font-medium">${toneLabel}</span>
+              <span class="text-xs text-gray-500">${item.timestamp} น.</span>
+            </div>
+            <p class="text-sm text-gray-400 line-clamp-2 mb-2 group-hover:text-white transition-colors">
+              ${escapeHtml(item.original)}
+            </p>
+            <div class="flex items-center gap-4 text-xs font-semibold">
+              <span class="text-red-400">ก่อน: ${item.scoreBefore}% AI</span>
+              <span class="text-accent-emerald">หลัง: ${item.scoreAfter}% AI</span>
+            </div>
+            <button onclick="event.stopPropagation(); deleteHistoryItem(${item.id});" class="absolute top-3 right-3 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 🔄 4. ฟังก์ชันเมื่อผู้ใช้กดคลิกที่กล่องประวัติ -> ดึงงานเก่ากลับมารันบนกล่องข้อความหลัก
+    window.loadHistoryItem = function(id) {
+      const item = historyData.find(i => i.id === id);
+      if (!item) return;
+
+      inputText.value = item.original;
+      outputText.innerHTML = item.humanized
+        .split('\n')
+        .map(p => `<p class="mb-2">${p}</p>`)
+        .join('');
+
+      lastOutputText = item.humanized; // ให้ปุ่มคัดลอกจำค่าเพื่อ Copy ต่อได้เลย
+      
+      el('inputWordCount').textContent = countWords(item.original);
+      el('outputWordCount').textContent = countWords(item.humanized);
+      
+      // อัปเดตแสงสีปุ่มโทนให้ตรงกับประวัติเก่า
+      selectedTone = item.tone;
+      document.querySelectorAll('.tone-btn').forEach(btn => {
+        if (btn.dataset.tone === item.tone) {
+          btn.classList.add('border-accent-emerald', 'bg-accent-emerald/10');
+        } else {
+          btn.classList.remove('border-accent-emerald', 'bg-accent-emerald/10');
+        }
+      });
+
+      updateUI(item.scoreBefore, item.scoreAfter);
+      showToast('ดึงข้อมูลสำเร็จ', 'โหลดประวัติเก่ากลับมาบนหน้าจอแล้ว');
+    };
+
+    // ❌ 5. ฟังก์ชันลบประวัติทีละรายการ
+    window.deleteHistoryItem = function(id) {
+      historyData = historyData.filter(i => i.id !== id);
+      localStorage.setItem('humanize_history', JSON.stringify(historyData));
+      renderHistoryUI();
+      showToast('ลบรายการแล้ว', 'ลบประวัติชิ้นนี้เรียบร้อยแล้วครับ');
+    };
+
+    // 🧹 6. ฟังก์ชันล้างกระดานลบประวัติทั้งหมด
+    function clearAllHistory() {
+      historyData = [];
+      localStorage.removeItem('humanize_history');
+      renderHistoryUI();
+      showToast('ล้างประวัติเรียบร้อย', 'ลบประวัติการแปลงข้อความทั้งหมดแล้วครับ');
+    }
+
+    // ตัวป้องกันระบบพังจากการใส่โค้ดแปลกๆ (XSS Protection)
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
   </script>
   <style>
     :root {
@@ -760,6 +881,7 @@
             .join('');
 
           el('outputWordCount').textContent = countWords(humanized);
+          saveToHistory(text, humanized, before.score, after.score, selectedTone);
         } else {
           // ถ้ากดตรวจจับอย่างเดียว ให้แสดงคะแนนหน้าบ้านทั้งสองฝั่งเท่ากัน
           after = { score: before.score };
@@ -829,6 +951,11 @@
 
     // Init
     document.addEventListener('DOMContentLoaded', () => {
+      loadHistory();
+      const clearBtn = el('clearHistory') || el('clearHistoryBtn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', clearAllHistory);
+      }
       createParticles();
       initScrollReveal();
       updateUI(0, 0);
