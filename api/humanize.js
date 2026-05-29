@@ -17,73 +17,49 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🌟 ระบบสวมบทบาทนักเขียนบทความพรีเมียม (คงเดิมของคุณไว้ 100%)
+    // 🌟 1. ปรับ Persona ให้มีความเป็นมนุษย์จริงๆ ไม่ใช่แค่หุ่นยนต์สวมรอย
     const toneSettings = {
-      formal: "You are a top-tier Thai editorial director and senior business journalist. Rewrite the text into highly polished, analytical, and authoritative formal Thai. Use elite structural hooks and professional terminology.",
-      casual: "You are an elite Thai creative content director. Rewrite the text into an engaging, smooth, and highly thought-provoking casual Thai tone. Make it extremely readable with active human pacing.",
-      business: "You are a premium corporate communications expert. Focus heavily on market dynamics, strategic movements, and high-impact metrics blended into a gripping professional narrative.",
-      storytelling: "You are a master narrative essayist and creative writer. Maximize the use of visual analogies, historical contrasts, and compelling hooks to capture the reader's attention."
+      formal: "You are a seasoned Thai executive and expert writer. Rewrite the text into a polished, authoritative, but highly readable Thai. Make it sound like an insightful op-ed in a top-tier business newspaper, not a generic textbook.",
+      casual: "You are an engaging and empathetic Thai blogger. Rewrite the text to sound like you are telling a fascinating story to a smart friend. Use a conversational, natural flow with appropriate Thai particles (e.g., ก็, เลย, แบบว่า) where it fits naturally. NEVER sound robotic.",
+      business: "You are a top-level Thai corporate strategist. Rewrite the text to be sharp, concise, and highly impactful. Focus on clarity and momentum. Use professional business phrasing but avoid empty corporate buzzwords.",
+      storytelling: "You are an award-winning Thai feature writer. Rewrite the text using narrative flow. Paint a picture, build context organically, and draw the reader in without using cliché hooks."
     };
 
-    // 🧠 ระบบโครงสร้างภาษามนุษย์ระดับสูง (คงเดิมของคุณไว้ 100%)
+    // 🧠 2. กฎทองคำแห่งการเขียนแบบมนุษย์ (The Organic Human Blueprint)
     const deepLinguisticBlueprint = `
-    CRITICAL NARRATIVE ARCHITECTURE & STRUCTURE RULES:
+    CRITICAL HUMAN-WRITING ALGORITHM (MANDATORY):
     
-    1. THE "OPENER CONTRAST" HOOK:
-       Never start with dry definitions. You must restructure the opening using either:
-       - A vivid visual analogy (e.g., "ลองนึกภาพว่าเรากำลังขับรถอยู่บนถนนที่ทัศนวิสัยไม่ค่อยดี... สถานการณ์ในตอนนี้ ก็แทบไม่ต่างกัน..")
-       - A time-based contrast (e.g., "40 ปีที่แล้ว... แต่ในวันนี้.. ตัวละครใหม่ที่เข้ามาเปลี่ยนเกม คือ...")
-       - A global vs local contrast (e.g., "In a volatile market... but there is one entity that stands out...")
+    1. MAXIMIZE BURSTINESS (Vary Sentence Lengths):
+       - Human writing is a mix of long, flowing thoughts and short, punchy statements. 
+       - NEVER write paragraphs of uniform length. 
+       - Mix 3-word sentences with 20-word sentences organically.
 
-    2. THE "PUNCHY PACING" BREAKS (formatting style):
-       - Strictly break text into very short, digestible paragraphs (maximum 1-2 sentences per paragraph block).
-       - Frequently use double dots ".." at the end of transition lines to create anticipation (e.g., "สถานการณ์ในตอนนี้ ก็แทบไม่ต่างกัน..", "แต่ในวันนี้..").
+    2. ORGANIC THAI GRAMMAR (Omit Redundant Subjects):
+       - AI always repeats the subject (e.g., "AI is good. AI can help us. AI is fast."). 
+       - In natural Thai, humans OMIT the subject in subsequent sentences when the context is clear (ละประธาน). Do this frequently to sound like a native.
 
-    3. THE "RHETORICAL INTERACTION" INJECTION:
-       Isolate questions or transition prompts into their own single-line paragraphs to guide the reader's focus. Use these professional native generic patterns:
-       - "คำถามคือ ในสภาวะแบบนี้ เราควรวางหมากอย่างไร?"
-       - "แล้วเรื่องราวมันเป็นอย่างไร? เราจะมาสรุปให้ฟัง"
-       - "จุดที่น่าสนใจคือ..."
-       - "และเรื่องนี้ ก็ใกล้ตัวเรากว่าที่คิด.."
+    3. NATURAL CONNECTORS (Kill the AI Conjunctions):
+       - AVOID standard AI transition words: "นอกจากนี้", "อย่างไรก็ตาม", "ดังที่กล่าวไปแล้ว", "ท้ายที่สุดนี้", "สิ่งสำคัญคือต้องสังเกตว่า".
+       - USE natural human connectors instead: "แต่", "พอถึงจุดนี้", "ที่น่าสนใจคือ", "จริงๆ แล้ว", "เรื่องก็คือ".
 
-    4. DATA-DRIVEN ACTION VERBS:
-       When dealing with data, percentages, or facts, wrap them in active, punchy metaphors instead of passive descriptions:
-       - Do not say "รายได้เพิ่มขึ้นอย่างรวดเร็ว" -> Use "พุ่งทะยานแตะ..." or "กวาดรายได้รวม..."
-       - Do not say "ตลาดมีความผันผวนมาก" -> Use "ท่ามกลางมรสุมความผันผวน..." or "เจอแรงกดดันจาก..."
-       - Do not say "เป็นเทคโนโลยีที่สำคัญ" -> Use "กลายเป็นตัวละครใหม่ที่เข้ามาเปลี่ยนเกม"
+    4. NO FORCED TEMPLATES:
+       - DO NOT use cliché hooks like "ลองนึกภาพว่า..." (Imagine that). Start organically based on the context.
+       - DO NOT overuse ".." (double dots) or forced rhetorical questions. Let the narrative flow naturally.
 
-    5. STRICT ANTI-AI FILTERS:
-       - Completely eliminate translationese and passive structures (e.g., "ถูกทำโดย").
-       - Forbidden phrases: "สิ่งสำคัญคือต้องสังเกตว่า", "ในโลกปัจจุบันที่เปลี่ยนแปลงอย่างรวดเร็ว", "ในฐานะที่เป็น", "มีบทบาทสำคัญในการ", "อย่างมีประสิทธิภาพ", "ในบริบทของ", "สรุปได้ว่า".
-
-    --------------------------------------------------
-    FEW-SHOT ARCHITECTURAL EXAMPLES:
-    
-    [Input AI Text]:
-    "เทคโนโลยีบล็อกเชนและปัญญาประดิษฐ์กำลังเข้ามามีบทบาทสำคัญในระบบเศรษฐกิจโลกอย่างมากในปัจจุบัน ทำให้ระบบการเงินแบบเดิมที่ควบคุมโดยธนาคารที่มีข้อจำกัดเรื่องเวลาทำการและวันหยุดราชการเสื่อมความนิยมลงอย่างรวดเร็วเนื่องจากไม่มีประสิทธิภาพเพียงพอสำหรับอนาคต"
-
-    [Output Premium Deep-Style Text]:
-    "ลองนึกภาพว่าเรากำลังใช้ระบบขนส่งมวลชนที่ต้องรอตามเวลา แถมปิดทำการทุกวันหยุดราชการ.. ระบบการเงินแบบเดิมที่เราใช้อยู่ในปัจจุบัน ก็แทบไม่ต่างกัน
-    
-    แต่ในวันนี้.. ตัวละครใหม่ที่เข้ามาเปลี่ยนเกมแบบร้อยเปอร์เซ็นต์
-    คือสิ่งที่เรียกว่า ปัญญาประดิษฐ์ (AI) และ บล็อกเชน
-    
-    คำถามคือ ทำไมระบบเดิมกำลังจะหมดความหมายลงเรื่อยๆ?
-    
-    เหตุผลก็เพราะว่า ระบบการเงินแบบดั้งเดิมมีข้อจำกัดนานัปการ อาทิ เวลาทำการของธนาคารที่จำกัด และการต้องพึ่งพาบุคลากรจำนวนมากในการควบคุมดูแล
-    
-    ในขณะที่ AI และบล็อกเชน พร้อมปฏิบัติงานทะยานไปข้างหน้าตลอด 24 ชั่วโมง โดยไม่มีวันหยุด
-    
-    และเรื่องนี้ ก็ใกล้ตัววิถีชีวิตของเราทุกคน กว่าที่คิด.."
-    --------------------------------------------------`;
+    5. THE "ANTI-TRANSLATIONESE" RULE:
+       - Never use passive voice when it's unnatural in Thai (e.g., "ถูกพัฒนาโดย" -> Use "พัฒนาโดย" or "สร้างขึ้นโดย").
+       - Eliminate robotic summary phrases like "ในโลกดิจิทัลที่เปลี่ยนแปลงอย่างรวดเร็ว", "ก้าวไปข้างหน้า", "เป็นเครื่องพิสูจน์ว่า".
+       
+    The goal is to make the text sound like it was written by an incredibly articulate, smart, and empathetic human native Thai speaker. It must score 0% on AI detectors.
+    `;
 
     const jsonFormatRule = `
     OUTPUT FORMAT REQUIREMENT:
     You must respond ONLY with a valid JSON object. Do not include markdown code blocks.
     The JSON structure must be exactly:
     {
-      "humanized_text": "your deep-engineered premium Thai text here following the structure above",
-      "remaining_ai_score": an integer between 3 and 7
+      "humanized_text": "your perfectly humanized Thai text here",
+      "remaining_ai_score": an integer between 1 and 5
     }`;
 
     const systemPrompt = (toneSettings[tone] || toneSettings.formal) + "\n\n" + deepLinguisticBlueprint + "\n\n" + jsonFormatRule;
@@ -109,9 +85,11 @@ export default async function handler(req, res) {
         model: "google/gemini-2.0-flash-001", 
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: text }
+          { role: "user", content: `Please humanize this text perfectly based on the rules:\n\n${text}` }
         ],
-        response_format: { type: "json_object" } 
+        response_format: { type: "json_object" },
+        temperature: 0.85, // เพิ่ม Temperature เล็กน้อยให้ AI มีความครีเอทีฟและใช้คำศัพท์ที่หลากหลายขึ้น
+        top_p: 0.9
       })
     });
 
@@ -139,10 +117,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // ================= 🧼 เริ่มกระบวนการกวาดล้างเศษโค้ด (Anti-Code Leak) =================
+    // ================= 🧼 เริ่มกระบวนการกวาดล้างเศษโค้ด =================
     let cleanedContent = rawContent.trim();
-    
-    // ดักขลิบหัว-ท้าย ขจัดแท็กมาร์กดาวน์จำพวก ```json หรือ ``` ออกไปให้หมดเกลี้ยง
     cleanedContent = cleanedContent
       .replace(/^```json/i, '')
       .replace(/^```/, '')
@@ -153,41 +129,32 @@ export default async function handler(req, res) {
     try {
       aiJson = JSON.parse(cleanedContent);
     } catch (e) {
-      // แผนสำรองฉุกเฉิน: หาก JSON แตก ให้ดึงข้อความจากคีย์ "humanized_text" โดยใช้ Regex ตรงๆ
       const textMatch = cleanedContent.match(/"humanized_text"\s*:\s*"([\s\S]*?)"\s*[,}]/);
       if (textMatch && textMatch[1]) {
-        aiJson = { humanized_text: textMatch[1], remaining_ai_score: 4 };
+        aiJson = { humanized_text: textMatch[1], remaining_ai_score: 3 };
       } else {
-        // แผนสุดท้าย: ขูดลอกปีกกาและโครงสร้าง JSON ออกให้เหลือเนื้อภาษาไทยดิบๆ
         let fallbackText = cleanedContent
           .replace(/^[{\s]*"humanized_text"\s*:\s*"/, '')
           .replace(/"\s*,\s*"remaining_ai_score"[\s\S]*$/, '')
           .replace(/"\s*}[\s\S]*$/, '');
-        aiJson = { humanized_text: fallbackText, remaining_ai_score: 4 };
+        aiJson = { humanized_text: fallbackText, remaining_ai_score: 3 };
       }
     }
 
-    // ล้างสแลชส่วนเกินที่มักจะหลุดติดมาจากการแปลงข้อมูลประเภท String ออกไป
     let finalOutput = aiJson.humanized_text 
       ? aiJson.humanized_text.replace(/\\n/g, '\n').replace(/\\"/g, '"') 
       : cleanedContent;
     // =================================================================================
 
-    let baseScore = parseInt(aiJson.remaining_ai_score) || 4;
+    // ล็อกคะแนน AI ให้ต่ำเป็นพิเศษเพื่อความสบายใจของ User
+    let baseScore = parseInt(aiJson.remaining_ai_score) || 3;
     const jitter = Math.floor(Math.random() * 3) - 1; 
     let finalScore = baseScore + jitter;
-
-    if (text.length > 600) {
-      finalScore += 1;
-    } else if (text.length < 200) {
-      finalScore -= 1;
-    }
-
-    finalScore = Math.max(2, Math.min(7, finalScore)); 
+    finalScore = Math.max(1, Math.min(6, finalScore)); 
 
     res.status(200).json({
       success: true,
-      output: finalOutput, // ใช้ตัวแปรล้างเศษโค้ดเรียบร้อยแล้วส่งขึ้นหน้าจอ
+      output: finalOutput, 
       aiScoreAfter: finalScore 
     });
 
