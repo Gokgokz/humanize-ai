@@ -26,6 +26,16 @@
     }
     // ================= ระบบจัดการประวัติการใช้งาน (LocalStorage - ฟรี 0 Token) =================
     
+    function persistHistory() {
+      try {
+        localStorage.setItem('humanize_history', JSON.stringify(historyData));
+        return true;
+      } catch (error) {
+        console.warn('ไม่สามารถบันทึกประวัติลงเครื่องได้:', error);
+        return false;
+      }
+    }
+
     // 💾 1. ฟังก์ชันบันทึกประวัติลงเครื่องผู้ใช้
     function saveToHistory(original, humanized, scoreBefore, scoreAfter, tone) {
       const newItem = {
@@ -42,53 +52,73 @@
       historyData.unshift(newItem);
       if (historyData.length > 10) historyData.pop();
 
-      localStorage.setItem('humanize_history', JSON.stringify(historyData));
+      persistHistory();
       renderHistoryUI();
     }
 
     // 📂 2. ฟังก์ชันโหลดประวัติเก่าขึ้นมาทำงาน
     function loadHistory() {
-      const saved = localStorage.getItem('humanize_history');
-      if (saved) {
-        try { historyData = JSON.parse(saved); } catch (e) { historyData = []; }
+      try {
+        const saved = localStorage.getItem('humanize_history');
+        const parsed = saved ? JSON.parse(saved) : [];
+        historyData = Array.isArray(parsed)
+          ? parsed.filter(item => item
+              && Number.isFinite(Number(item.id))
+              && typeof item.original === 'string'
+              && typeof item.humanized === 'string')
+            .slice(0, 10)
+          : [];
+      } catch (error) {
+        console.warn('ไม่สามารถโหลดประวัติจากเครื่องได้:', error);
+        historyData = [];
       }
       renderHistoryUI();
     }
 
     // 🎨 3. ฟังก์ชันวาดหน้าตาประวัติลงบนจอ (UI Rendering)
     function renderHistoryUI() {
-      const container = document.getElementById('historyList'); 
-      const emptyState = document.getElementById('emptyHistory'); // ดึงตัวแปรกล่อง "ไม่มีประวัติ" มา
-      
-      if (!container) return;
+      const container = el('historyList');
+      const emptyState = el('emptyHistory');
+      const clearButton = el('clearHistory');
+      if (!container || !emptyState) return;
 
-      if (historyData.length === 0) {
-        container.innerHTML = ''; // ล้างลิสต์ประวัติให้ว่าง
-        if (emptyState) emptyState.style.display = 'block'; // เปิดการแสดงผลกล่อง "ยังไม่มีประวัติ"
+      const hasHistory = historyData.length > 0;
+      container.classList.toggle('hidden', !hasHistory);
+      emptyState.classList.toggle('hidden', hasHistory);
+      emptyState.setAttribute('aria-hidden', String(hasHistory));
+
+      if (clearButton) {
+        clearButton.disabled = !hasHistory;
+        clearButton.classList.toggle('opacity-40', !hasHistory);
+        clearButton.classList.toggle('cursor-not-allowed', !hasHistory);
+      }
+
+      if (!hasHistory) {
+        container.innerHTML = '';
         return;
       }
 
-      // 🎯 หัวใจสำคัญ: ถ้ามีประวัติแล้ว ให้ซ่อนกล่อง "ยังไม่มีประวัติ" ทิ้งไปเลย!
-      if (emptyState) emptyState.style.display = 'none'; 
-
       container.innerHTML = historyData.map(item => {
-        const toneLabels = { formal: 'ทางการ', casual: 'เป็นกันเอง', business: 'ธุรกิจ', storytelling: 'เล่าเรื่อง' };
+        const toneLabels = { formal: 'ทางการ', casual: 'เป็นกันเอง', business: 'ธุรกิจ', storytelling: 'เล่าเรื่อง', academic: 'วิชาการ' };
         const toneLabel = toneLabels[item.tone] || 'ทั่วไป';
+        const itemId = Number(item.id);
+        const scoreBefore = Math.max(0, Math.min(100, Number(item.scoreBefore) || 0));
+        const scoreAfter = Math.max(0, Math.min(100, Number(item.scoreAfter) || 0));
 
         return `
-          <div class="p-4 rounded-xl bg-surface-card/40 border border-surface-border hover:border-gray-600 transition-all cursor-pointer group relative" onclick="loadHistoryItem(${item.id})">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-xs px-2 py-0.5 rounded bg-surface-border text-gray-300 font-medium">${toneLabel}</span>
-              <span class="text-xs text-gray-500">${item.timestamp} น.</span>
+          <div class="history-item p-4 bg-surface-card/40 hover:bg-surface-dark/70 transition-all cursor-pointer group relative focus:outline-none focus:ring-2 focus:ring-accent-emerald/60" role="button" tabindex="0" aria-label="โหลดประวัติ ${escapeHtml(toneLabel)}" onclick="loadHistoryItem(${itemId})" onkeydown="if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); loadHistoryItem(${itemId}); }">
+            <div class="flex justify-between items-center mb-2 pr-7">
+              <span class="text-xs px-2 py-0.5 rounded bg-surface-border text-gray-300 font-medium">${escapeHtml(toneLabel)}</span>
+              <span class="text-xs text-gray-500">${escapeHtml(item.timestamp)} น.</span>
             </div>
             <p class="text-sm text-gray-400 line-clamp-2 mb-2 group-hover:text-white transition-colors">
               ${escapeHtml(item.original)}
             </p>
             <div class="flex items-center gap-4 text-xs font-semibold">
-              <span class="text-red-400">ก่อน: ${item.scoreBefore}% AI</span>
-              <span class="text-accent-emerald">หลัง: ${item.scoreAfter}% AI</span>
+              <span class="text-red-400">ก่อน: ${scoreBefore}% AI</span>
+              <span class="text-accent-emerald">หลัง: ${scoreAfter}% AI</span>
             </div>
-            <button onclick="event.stopPropagation(); deleteHistoryItem(${item.id});" class="absolute top-3 right-3 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button type="button" aria-label="ลบรายการนี้" onclick="event.stopPropagation(); deleteHistoryItem(${itemId});" class="absolute top-3 right-3 p-1 text-gray-500 hover:text-red-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </div>
@@ -98,53 +128,61 @@
 
     // 🔄 4. ฟังก์ชันเมื่อผู้ใช้กดคลิกที่กล่องประวัติ -> ดึงงานเก่ากลับมารันบนกล่องข้อความหลัก
     window.loadHistoryItem = function(id) {
-      const item = historyData.find(i => i.id === id);
+      const item = historyData.find(i => Number(i.id) === Number(id));
       if (!item) return;
 
       inputText.value = item.original;
-      outputText.innerHTML = item.humanized
-        .split('\n')
-        .map(p => `<p class="mb-2">${p}</p>`)
-        .join('');
+      outputText.innerHTML = renderTextParagraphs(item.humanized);
 
       lastOutputText = item.humanized; // ให้ปุ่มคัดลอกจำค่าเพื่อ Copy ต่อได้เลย
       
       el('inputWordCount').textContent = countWords(item.original);
       el('outputWordCount').textContent = countWords(item.humanized);
       
-      // อัปเดตแสงสีปุ่มโทนให้ตรงกับประวัติเก่า
+      // อัปเดตปุ่มโทนให้ตรงกับประวัติเก่า
       selectedTone = item.tone;
-      document.querySelectorAll('.tone-btn').forEach(btn => {
-        if (btn.dataset.tone === item.tone) {
-          btn.classList.add('border-accent-emerald', 'bg-accent-emerald/10');
-        } else {
-          btn.classList.remove('border-accent-emerald', 'bg-accent-emerald/10');
-        }
+      document.querySelectorAll('#toneSelector [data-tone]').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.tone === item.tone);
       });
 
       updateUI(item.scoreBefore, item.scoreAfter);
+      el('tool')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       showToast('ดึงข้อมูลสำเร็จ', 'โหลดประวัติเก่ากลับมาบนหน้าจอแล้ว');
     };
 
     // ❌ 5. ฟังก์ชันลบประวัติทีละรายการ
     window.deleteHistoryItem = function(id) {
-      historyData = historyData.filter(i => i.id !== id);
-      localStorage.setItem('humanize_history', JSON.stringify(historyData));
+      historyData = historyData.filter(i => Number(i.id) !== Number(id));
+      persistHistory();
       renderHistoryUI();
       showToast('ลบรายการแล้ว', 'ลบประวัติชิ้นนี้เรียบร้อยแล้วครับ');
     };
 
     // 🧹 6. ฟังก์ชันล้างกระดานลบประวัติทั้งหมด
     function clearAllHistory() {
+      if (historyData.length === 0) return;
+      if (!window.confirm('ต้องการล้างประวัติทั้งหมดใช่ไหม?')) return;
+
       historyData = [];
-      localStorage.removeItem('humanize_history');
+      try {
+        localStorage.removeItem('humanize_history');
+      } catch (error) {
+        console.warn('ไม่สามารถล้างประวัติจากเครื่องได้:', error);
+      }
       renderHistoryUI();
       showToast('ล้างประวัติเรียบร้อย', 'ลบประวัติการแปลงข้อความทั้งหมดแล้วครับ');
     }
 
     // ตัวป้องกันระบบพังจากการใส่โค้ดแปลกๆ (XSS Protection)
     function escapeHtml(text) {
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      return String(text ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function renderTextParagraphs(text, className = 'mb-2') {
+      return escapeHtml(text)
+        .split('\n')
+        .map(paragraph => `<p class="${className}">${paragraph || '&nbsp;'}</p>`)
+        .join('');
     }
   </script>
   <style>
@@ -203,6 +241,7 @@
     }
     .btn-primary:hover::before { left: 100%; }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3); }
+    button:disabled { pointer-events: none; }
     
     .tone-option { transition: all 0.3s ease; }
     .tone-option:hover { transform: translateY(-2px); }
@@ -432,8 +471,8 @@
               <button id="clearInput" class="p-2 rounded-lg hover:bg-surface-border transition-colors" title="ล้าง">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
-              <label class="p-2 rounded-lg hover:bg-surface-border transition-colors cursor-pointer" title="อัปโหลดไฟล์">
-                <input type="file" id="fileUpload" class="hidden" accept=".txt,.doc,.docx,.pdf">
+              <label class="p-2 rounded-lg hover:bg-surface-border transition-colors cursor-pointer" title="อัปโหลดไฟล์ข้อความ">
+                <input type="file" id="fileUpload" class="hidden" accept=".txt,text/plain">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
               </label>
             </div>
@@ -494,7 +533,7 @@
             </div>
           </div>
 
-          <div id="outputText" class="w-full h-64 lg:h-72 p-5 text-gray-100 overflow-y-auto">
+          <div id="outputText" class="w-full h-64 lg:h-72 p-5 text-gray-100 overflow-y-auto" aria-live="polite">
             <span class="text-gray-500 italic">ผลลัพธ์จะแสดงที่นี่หลังจากกดประมวลผล...</span>
           </div>
           
@@ -515,7 +554,7 @@
         </button>
       </div>
 
-      <div id="processingIndicator" class="hidden fixed inset-0 bg-bg-primary/80 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div id="processingIndicator" class="hidden fixed inset-0 bg-bg-primary/80 backdrop-blur-sm z-50 flex items-center justify-center" role="status" aria-live="polite" aria-hidden="true">
         <div class="bg-surface-card rounded-2xl p-8 border border-surface-border text-center">
           <div class="w-16 h-16 mx-auto mb-4 relative">
             <div class="absolute inset-0 border-4 border-surface-border rounded-full"></div>
@@ -530,9 +569,14 @@
 
   <section id="history" class="relative py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-12 reveal">
-        <h2 class="font-display text-3xl sm:text-4xl font-bold mb-4">ประวัติการใช้งาน</h2>
-        <p class="text-gray-400">เข้าถึงเอกสารที่เคยประมวลผลได้ตลอดเวลา</p>
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 reveal">
+        <div>
+          <h2 class="font-display text-3xl sm:text-4xl font-bold mb-3">ประวัติการใช้งาน</h2>
+          <p class="text-gray-400">เก็บล่าสุด 10 รายการไว้บนอุปกรณ์นี้</p>
+        </div>
+        <button id="clearHistory" type="button" class="self-start sm:self-auto px-4 py-2 rounded-xl border border-surface-border text-sm text-gray-300 hover:border-red-400 hover:text-red-400 transition-colors">
+          ล้างประวัติทั้งหมด
+        </button>
       </div>
       <div class="bg-surface-card/80 backdrop-blur rounded-2xl border border-surface-border overflow-hidden reveal" style="transition-delay: 0.1s;">
         <div id="historyList" class="divide-y divide-surface-border max-h-96 overflow-y-auto"></div>
@@ -607,6 +651,7 @@
     let selectedLang = 'th';
     let historyData = [];
     let lastOutputText = '';
+    let isProcessing = false;
 
     // ============== AI PATTERNS (มัลติเลเยอร์คำนวณระดับสูง - ละเอียดยิบ) ==============
     const aiPatternsThai = [
@@ -793,6 +838,17 @@
     const processingIndicator = el('processingIndicator');
     const particlesContainer = el('particles');
 
+    function setProcessingState(isBusy) {
+      isProcessing = isBusy;
+      processBtn.disabled = isBusy;
+      detectOnlyBtn.disabled = isBusy;
+      processBtn.classList.toggle('opacity-60', isBusy);
+      detectOnlyBtn.classList.toggle('opacity-60', isBusy);
+      processingIndicator.classList.toggle('hidden', !isBusy);
+      processingIndicator.setAttribute('aria-hidden', String(!isBusy));
+      document.body.classList.toggle('overflow-hidden', isBusy);
+    }
+
     function createParticles() {
       for (let i = 0; i < 15; i++) {
         const p = document.createElement('div');
@@ -838,14 +894,18 @@
 
     // 🛡️ ปรับปรุงระบบประมวลผลฝั่งหน้าบ้านแบบปลอดภัย (Bulletproof Try-Catch-Finally)
     async function processText(detectOnly = false) {
+      if (isProcessing) return;
+
       const text = inputText.value.trim();
       if (!text) return showToast('ผิดพลาด', 'กรุณาใส่ข้อความ');
 
       const wCount = countWords(text);
       if (wCount > wordQuota) return showToast('เกินโควตา', 'กรุณาอัปเกรด');
 
-      processingIndicator.classList.remove('hidden');
-      el('processingStatus').textContent = 'กำลังติดต่อเซิร์ฟเวอร์หลังบ้าน...';
+      setProcessingState(true);
+      el('processingStatus').textContent = detectOnly
+        ? 'กำลังวิเคราะห์รูปแบบข้อความ...'
+        : 'กำลังติดต่อเซิร์ฟเวอร์หลังบ้าน...';
 
       try {
         // คะแนนฝั่ง "ก่อนแปลง" ยังคงใช้ความเร็วของเครื่องคำนวณโชว์สถิติไปก่อนได้เลย
@@ -870,21 +930,24 @@
           if (!data.success) {
             throw new Error(data.error || 'หลังบ้านส่งข้อผิดพลาดกลับมา');
           }
+          if (typeof data.output !== 'string' || data.output.trim() === '') {
+            throw new Error('หลังบ้านไม่ได้ส่งข้อความผลลัพธ์กลับมา');
+          }
 
-          const humanized = data.output;
+          const humanized = data.output.trim();
           lastOutputText = humanized; // 🎯 เพิ่มบรรทัดนี้: บังคับให้ระบบจำข้อความดิบพร้อม \n ไว้ทันที
           // 🎯 ดึงคะแนนแม่นๆ ที่ประเมินโดยสมอง AI หลังบ้านมาใช้โดยตรง ไม่ต้องเดาคำเชื่อมเองแล้ว!
           after = { score: data.aiScoreAfter }; 
 
-          outputText.innerHTML = humanized
-            .split('\n')
-            .map(p => `<p class="mb-2">${p}</p>`)
-            .join('');
+          outputText.innerHTML = renderTextParagraphs(humanized);
 
           el('outputWordCount').textContent = countWords(humanized);
           saveToHistory(text, humanized, before.score, after.score, selectedTone);
         } else {
-          // ถ้ากดตรวจจับอย่างเดียว ให้แสดงคะแนนหน้าบ้านทั้งสองฝั่งเท่ากัน
+          // โหมดตรวจจับอย่างเดียวต้องไม่เหลือผลลัพธ์เก่าที่อาจถูกคัดลอกผิดข้อความ
+          lastOutputText = '';
+          el('outputWordCount').textContent = '0';
+          outputText.innerHTML = '<span class="text-gray-400">ตรวจจับเรียบร้อยแล้ว ดูคะแนนของข้อความต้นฉบับด้านบน</span>';
           after = { score: before.score };
         }
 
@@ -894,10 +957,12 @@
 
       } catch (error) {
         console.error("หน้าบ้านตรวจพบความพัง:", error);
-        outputText.innerHTML = `<span class="text-red-400 font-bold">❌ เกิดข้อผิดพลาดจากระบบ: ${error.message}</span>`;
-        showToast('เกิดข้อผิดพลาด', 'ไม่สามารถคุยกับเซิร์ฟเวอร์ได้');
+        lastOutputText = '';
+        el('outputWordCount').textContent = '0';
+        outputText.innerHTML = `<span class="text-red-400 font-bold">❌ เกิดข้อผิดพลาดจากระบบ: ${escapeHtml(error.message)}</span>`;
+        showToast('เกิดข้อผิดพลาด', error.message || 'ไม่สามารถคุยกับเซิร์ฟเวอร์ได้');
       } finally {
-        processingIndicator.classList.add('hidden');
+        setProcessingState(false);
       }
     }
 
@@ -923,20 +988,75 @@
       }
     });
 
-    el('clearInput').addEventListener('click', () => { 
-      inputText.value = ''; 
-      el('inputWordCount').textContent = '0'; 
-      outputText.innerHTML = '<span class="text-gray-500 italic">ผลลัพธ์จะแสดงที่นี่หลังจากกดประมวลผล...</span>';
-      lastOutputText = ''; // 👈 ล้างความจำตรงนี้ด้วย
+    inputText.addEventListener('input', () => {
+      el('inputWordCount').textContent = countWords(inputText.value);
     });
-    
-    el('copyOutput').addEventListener('click', () => {
-      if (lastOutputText) {
-        navigator.clipboard.writeText(lastOutputText);
-        showToast('คัดลอกแล้ว', 'คัดลอกไปยังคลิปบอร์ด');
-      } else {
-        showToast('ผิดพลาด', 'ไม่มีข้อความให้คัดลอก');
+
+    el('fileUpload').addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      try {
+        if (!file.name.toLowerCase().endsWith('.txt')) {
+          throw new Error('รองรับเฉพาะไฟล์ .txt เท่านั้น');
+        }
+        if (file.size > 1024 * 1024) {
+          throw new Error('ไฟล์ต้องมีขนาดไม่เกิน 1 MB');
+        }
+
+        inputText.value = await file.text();
+        inputText.dispatchEvent(new Event('input'));
+        showToast('อัปโหลดสำเร็จ', `โหลด ${file.name} แล้ว`);
+      } catch (error) {
+        showToast('อัปโหลดไม่สำเร็จ', error.message);
+      } finally {
+        event.target.value = '';
       }
+    });
+
+    el('clearInput').addEventListener('click', () => {
+      inputText.value = '';
+      lastOutputText = '';
+      el('inputWordCount').textContent = '0';
+      el('outputWordCount').textContent = '0';
+      outputText.innerHTML = '<span class="text-gray-500 italic">ผลลัพธ์จะแสดงที่นี่หลังจากกดประมวลผล...</span>';
+      updateUI(0, 0);
+      inputText.focus();
+    });
+
+    el('copyOutput').addEventListener('click', async () => {
+      if (!lastOutputText) {
+        showToast('ผิดพลาด', 'ไม่มีข้อความให้คัดลอก');
+        return;
+      }
+
+      try {
+        if (!navigator.clipboard?.writeText) {
+          throw new Error('เบราว์เซอร์ไม่รองรับการคัดลอกอัตโนมัติ');
+        }
+        await navigator.clipboard.writeText(lastOutputText);
+        showToast('คัดลอกแล้ว', 'คัดลอกไปยังคลิปบอร์ด');
+      } catch (error) {
+        showToast('คัดลอกไม่สำเร็จ', error.message);
+      }
+    });
+
+    el('downloadOutput').addEventListener('click', () => {
+      if (!lastOutputText) {
+        showToast('ผิดพลาด', 'ไม่มีข้อความให้ดาวน์โหลด');
+        return;
+      }
+
+      const blob = new Blob(['\uFEFF', lastOutputText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `humanized-${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast('ดาวน์โหลดแล้ว', 'บันทึกผลลัพธ์เป็นไฟล์ .txt');
     });
 
     el('mobileMenuBtn').addEventListener('click', () => el('mobileMenu').classList.add('open'));
@@ -950,27 +1070,6 @@
       });
     });
 
-    // =======================================================================
-    // 🛠️ ระบบดักจับการ Copy (แก้ปัญหาลากคลุมแล้วไปวางใน Word เป็นสีขาว/ไม่เว้นบรรทัด)
-    // =======================================================================
-    document.addEventListener('copy', (e) => {
-      const selection = window.getSelection();
-      const outputDiv = document.getElementById('outputText');
-
-      // ตรวจสอบว่าผู้ใช้กำลังลากคลุมข้อความที่อยู่ในกล่อง "ข้อความที่ปรับแล้ว" หรือไม่
-      if (selection.rangeCount > 0 && outputDiv.contains(selection.anchorNode)) {
-        e.preventDefault(); // หยุดการ Copy แบบติดสีติด Format ของเบราว์เซอร์
-
-        // 1. ดึงมาเฉพาะข้อความดิบๆ (สีขาวและฟอนต์จะไม่ตามไป)
-        let plainText = selection.toString();
-
-        // 2. จัดระเบียบการเว้นบรรทัด
-        plainText = plainText.replace(/([^\n])\n([^\n])/g, '$1\n\n$2');
-
-        // 3. ยัดข้อความดิบที่จัดระเบียบแล้ว ลงใน Clipboard
-        e.clipboardData.setData('text/plain', plainText);
-      }
-    });
     // Init
     document.addEventListener('DOMContentLoaded', () => {
       loadHistory();
